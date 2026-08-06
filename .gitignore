@@ -1,0 +1,10 @@
+# clasp
+.clasp.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
