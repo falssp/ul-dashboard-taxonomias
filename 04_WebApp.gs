@@ -152,16 +152,23 @@ function formatarPlanilha() {
 function doGet(e) {
   const p = (e && e.parameter) || {};
 
-  // ── Modo JSON — GitHub Pages faz fetch com ?fmt=json ─────
-  if (p.fmt === 'json') {
+  // ── Modo JSONP — GitHub Pages usa <script> tag (sem CORS) ──
+  // ── Modo JSON  — fetch direto com ?fmt=json ─────────────
+  if (p.callback || p.fmt === 'json') {
     let payload;
     if (p.acao === 'periodo') {
-      const dp  = getDadosPeriodo(p.de||'', p.ate||'', p.campo||'updated');
-      payload   = { dados: dp, periodo: { de:p.de||'', ate:p.ate||'', campo:p.campo||'updated' }, incorretos: getIncorretos() };
+      const dp = getDadosPeriodo(p.de||'', p.ate||'', p.campo||'updated');
+      payload  = { dados: dp, periodo: { de:p.de||'', ate:p.ate||'', campo:p.campo||'updated' }, incorretos: getIncorretos() };
     } else {
-      payload   = { dados: getDados(), periodo: null, incorretos: getIncorretos() };
+      payload  = { dados: getDados(), periodo: null, incorretos: getIncorretos() };
     }
-    return ContentService.createTextOutput(JSON.stringify(payload)).setMimeType(ContentService.MimeType.JSON);
+    const json = JSON.stringify(payload);
+    if (p.callback) {
+      // JSONP — envolve em callback(...)
+      return ContentService.createTextOutput(p.callback + '(' + json + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
   }
 
   // ── Status do progresso ───────────────────────────────────
