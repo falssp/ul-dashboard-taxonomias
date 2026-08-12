@@ -55,7 +55,7 @@ function _gravarRAWPai(_ss, pais) {
       c.relator,c.duedate,c.qtdTax,c.statusAdp,c.bu,c.marcaJira,c.plataforma,c.agencia,c.campMidia]);
   });
   sh.getRange(1,1,rows.length,H.length).setValues(rows);
-  _estilizarSheet(sh, rows.length, H.length);
+  _estilizarSheet(sh, rows.length, H.length, true);
   [80,75,360,110,160,90,90,180,90,60,110,120,110,100,110,120].forEach((w,i)=>sh.setColumnWidth(i+1,w));
   sh.setFrozenRows(1); sh.setFrozenColumns(1);
   _alinharColunas(sh, H, rows.length);
@@ -84,7 +84,7 @@ function _gravarRAWFilho(ss, filhos) {
       c.statusAdp,c.bu,c.marcaJira,c.plataforma,c.agencia,c.campMidia]);
   });
   sh.getRange(1,1,rows.length,H.length).setValues(rows);
-  _estilizarSheet(sh, rows.length, H.length);
+  _estilizarSheet(sh, rows.length, H.length, true);
   [80,75,340,80,300,110,160,90,90,180,90,60,110,120,110,100,110,120].forEach((w,i)=>sh.setColumnWidth(i+1,w));
   sh.setFrozenRows(1); sh.setFrozenColumns(1);
   _alinharColunas(sh, H, rows.length);
@@ -135,7 +135,7 @@ function _gravarDePara(sh) {
     ['VEICULO','Tag Kantar','Tag Kantar'],['VEICULO','B&W','B&W'],
   ];
   sh.getRange(1,1,d.length,3).setValues(d);
-  _estilizarSheet(sh, d.length, 3);
+  _estilizarSheet(sh, d.length, 3, true);
   [90,220,200].forEach((w,i)=>sh.setColumnWidth(i+1,w));
   // Alinhamento: TIPO centralizado, TOKEN e NOME à esquerda
   sh.getRange(1,1,d.length,3).setVerticalAlignment('middle');
@@ -171,6 +171,16 @@ function _gravarPainel(ss, pais, filhos) {
   const old = ss.getSheetByName('PAINEL'); if (old) ss.deleteSheet(old);
   const sh = ss.insertSheet('PAINEL');
   const dv = _carregarDePara('VEICULO');
+
+  // Filtra filhos atualizados nos últimos 12 meses — mantém PAINEL enxuto
+  // RAW_PAI e RAW_FILHO ficam completos (fonte de verdade local)
+  const corte = new Date();
+  corte.setFullYear(corte.getFullYear() - 1);
+  const corteISO = corte.toISOString().substring(0, 10);
+  filhos = filhos.filter(function(f) {
+    const upd = String((f.fields && f.fields.updated) || '').substring(0, 10);
+    return !upd || upd >= corteISO; // inclui sem data para não perder dados
+  });
   const H = ['PAI_KEY','PAI_SUMMARY','BU','AGÊNCIA','MARCA (JIRA)','CAMP. MÍDIA','STATUS ADP (PAI)',
              'FILHO_KEY','SUMMARY (FILHO)','VEÍCULO','STATUS','RESPONSÁVEL','RELATOR',
              'QTD TAX.','PLATAFORMA','DATA LIMITE','ÚLT. ATU.'];
@@ -222,7 +232,7 @@ function _gravarPainel(ss, pais, filhos) {
       cf.qtdTax||'',cf.plataforma||'',cf.duedate||'',_fmt(ff.updated)]));
   });
   sh.getRange(1,1,rows.length,H.length).setValues(rows);
-  _estilizarSheet(sh, rows.length, H.length);
+  _estilizarSheet(sh, rows.length, H.length, true);
   [80,340,115,115,120,115,115,80,320,115,115,155,155,55,100,90,90].forEach((w,i)=>sh.setColumnWidth(i+1,w));
   sh.setFrozenRows(1); sh.setFrozenColumns(2);
   _alinharColunas(sh, H, rows.length);
@@ -380,7 +390,7 @@ function _gravarTabela(ss) {
     sh.getRange(i+2,1,1,hdr.length)
       .setBackground(i%2===0?'#f0f4ff':'#fff')
       .setVerticalAlignment('middle');
-    sh.setRowHeight(i+2,24);
+    // não redefine altura — respeita ajustes manuais
   }
   // Alinhamento horizontal por coluna
   _alinharColunas(sh, hdr, rows.length+1);
@@ -408,7 +418,7 @@ function _gravarIncorretos(ss, incorretos) {
       (f.assignee||{}).displayName||'',_fmt(f.updated),JIRA_BASE + '/browse/' + i.key]);
   });
   sh.getRange(1,1,rows.length,H.length).setValues(rows);
-  _estilizarSheet(sh, rows.length, H.length);
+  _estilizarSheet(sh, rows.length, H.length, true);
   [80,100,340,120,155,90,300].forEach((w,i)=>sh.setColumnWidth(i+1,w));
   sh.setFrozenRows(1);
   _alinharColunas(sh, H, rows.length);
@@ -420,18 +430,18 @@ function _gravarIncorretos(ss, incorretos) {
 }
 
 // ── Helpers de estilo ─────────────────────────────────────────
-function _estilizarSheet(sh, nRows, nCols) {
-  // Cabeçalho
+function _estilizarSheet(sh, nRows, nCols, isNova) {
+  // Cabeçalho — sempre atualiza
   sh.getRange(1,1,1,nCols)
     .setBackground('#1a1a2e').setFontColor('#fff').setFontWeight('bold')
     .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontSize(10);
   sh.setRowHeight(1,30);
-  // Dados — zebra claro, todas as células: vertical=meio, fonte 10
+  // Dados — zebra e alinhamento sempre; altura só na primeira criação
   for(let i=2;i<=nRows;i++){
     sh.getRange(i,1,1,nCols)
       .setVerticalAlignment('middle').setFontSize(10)
       .setBackground(i%2===0?'#f0f4ff':'#fff');
-    sh.setRowHeight(i,24);
+    if(isNova) sh.setRowHeight(i,24);
   }
 }
 

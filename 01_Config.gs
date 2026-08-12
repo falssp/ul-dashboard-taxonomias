@@ -31,6 +31,7 @@ h1{font-size:18px;font-weight:700;color:#111827;margin-bottom:5px;letter-spacing
 .concluido-bar.ok{display:block;background:#f0fdf4;border:1.5px solid #86efac;color:#15803d;}
 .concluido-bar.erro{display:block;background:#fef2f2;border:1.5px solid #fca5a5;color:#991b1b;}
 .concluido-bar .motivo{font-size:12px;font-weight:400;margin-top:4px;opacity:.8;}
+.btn-fechar-sync.erro{background:#ef4444;}
 .si{
   width:32px;height:32px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
@@ -88,6 +89,7 @@ h1{font-size:18px;font-weight:700;color:#111827;margin-bottom:5px;letter-spacing
   <div class="concluido-bar" id="cb">
     <span id="cbTxt">—</span>
     <div class="motivo" id="cbMotivo"></div>
+    <button class="btn-fechar-sync" id="btnFecharSync" style="display:none;margin-top:10px;background:#3b82f6;color:#fff;border:none;border-radius:7px;padding:8px 24px;font-size:13px;font-weight:700;cursor:pointer;" onclick="google.script.host.close()">OK — Fechar</button>
   </div>
   <div class="pw"><div class="pb" id="pb"></div></div>
   <div class="pl" id="pl">Iniciando...</div>
@@ -139,6 +141,9 @@ function tick() {
         var cb = document.getElementById('cb');
         cb.className = 'concluido-bar ok';
         document.getElementById('cbTxt').textContent = '✅ ' + (det || 'Sincronização concluída!');
+        // Mostra botão de fechar e avisa que precisa de OK
+        document.getElementById('btnFecharSync').style.display = 'inline-block';
+        document.getElementById('btnFecharSync').focus();
         return;
       }
       if (et === 'erro') {
@@ -148,6 +153,9 @@ function tick() {
         cb.className = 'concluido-bar erro';
         document.getElementById('cbTxt').textContent = '⚠️ Erro na sincronização';
         document.getElementById('cbMotivo').textContent = det || 'Verifique o log no Apps Script.';
+        document.getElementById('btnFecharSync').style.display = 'inline-block';
+        document.getElementById('btnFecharSync').className = 'btn-fechar-sync erro';
+        document.getElementById('btnFecharSync').focus();
         return;
       }
       // Marca steps anteriores como done, step atual como active
