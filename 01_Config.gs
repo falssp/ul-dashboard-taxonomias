@@ -166,7 +166,9 @@ iv = setInterval(tick, 2000);
 
 // ── Menu ──────────────────────────────────────────────────────
 function onOpen() {
-  // Verifica token ≤ 7 dias para vencer — alert imediato ao abrir
+  // Remove abas extras silenciosamente ao abrir
+  try { _limparAbasExtrasInterno(); } catch(e) {}
+  // Verifica token ≤ 3 dias para vencer — alert imediato ao abrir
   _verificarTokenUrgente();
   SpreadsheetApp.getUi()
     .createMenu('📋 Dashboard UL')
@@ -642,6 +644,21 @@ const ABAS_PERMITIDAS = [
   '🏠 INICIO', 'PAINEL', '📊 VISUAL', '📋 TABELA',
   'RAW_PAI', 'RAW_FILHO', '⚠️ INCORRETOS', 'DE_PARA', '_SYNC_BUFFER'
 ];
+
+function _limparAbasExtrasInterno() {
+  // Roda no onOpen e no fim do sync — sem UI, silencioso
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const permitidas = new Set([
+    '🏠 INICIO','PAINEL','📊 VISUAL','📋 TABELA',
+    'RAW_PAI','RAW_FILHO','⚠️ INCORRETOS','DE_PARA','_SYNC_BUFFER'
+  ]);
+  ss.getSheets().forEach(function(sh) {
+    if (!permitidas.has(sh.getName()) && ss.getSheets().length > 1) {
+      try { ss.deleteSheet(sh); Logger.log('Aba extra removida: ' + sh.getName()); }
+      catch(e) {}
+    }
+  });
+}
 
 function limparAbasExtras() {
   PropertiesService.getScriptProperties().setProperty('ACAO_STATUS', 'aguardando');

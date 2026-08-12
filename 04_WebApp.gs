@@ -115,8 +115,24 @@ function getDadosPeriodo(de, ate, campo) {
 }
 
 // ── Formatação da planilha ────────────────────────────────────
+const ABAS_PERMITIDAS_SET = new Set([
+  '🏠 INICIO','PAINEL','📊 VISUAL','📋 TABELA',
+  'RAW_PAI','RAW_FILHO','⚠️ INCORRETOS','DE_PARA','_SYNC_BUFFER'
+]);
+
 function formatarPlanilha() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // ── Remove abas não permitidas automaticamente ────────────
+  ss.getSheets().forEach(function(sh) {
+    const nome = sh.getName();
+    if (!ABAS_PERMITIDAS_SET.has(nome) && ss.getSheets().length > 1) {
+      try { ss.deleteSheet(sh); Logger.log('Aba extra removida: ' + nome); }
+      catch(e) { Logger.log('Não foi possível remover: ' + nome); }
+    }
+  });
+
+  // ── Remove aba RAW legada (versão antiga) ─────────────────
   try {
     const rawLegada = ss.getSheetByName('RAW');
     if (rawLegada) { ss.deleteSheet(rawLegada); Logger.log('Aba RAW legada removida.'); }
