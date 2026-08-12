@@ -681,9 +681,9 @@ function _testarConexao(email, token) {
                 'Erro HTTP ' + code;
     return { ok: false, msg: msg };
   }
-  // Busca total de issues do projeto
+  // Busca total via endpoint clássico (v2) que sempre retorna total
   const respTotal = UrlFetchApp.fetch(
-    JIRA_BASE + '/rest/api/3/search/jql?jql=' + encodeURIComponent('project=' + PROJETO) + '&maxResults=1&fields=summary',
+    JIRA_BASE + '/rest/api/2/search?jql=' + encodeURIComponent('project=' + PROJETO) + '&maxResults=0&fields=summary',
     { method: 'GET', headers: { Authorization: 'Basic ' + auth, Accept: 'application/json' }, muteHttpExceptions: true }
   );
   if (respTotal.getResponseCode() !== 200) return { ok: false, msg: 'Conexão OK mas erro ao buscar projeto: HTTP ' + respTotal.getResponseCode() };
