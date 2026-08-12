@@ -181,7 +181,9 @@ function onOpen() {
     .addSubMenu(SpreadsheetApp.getUi().createMenu('Avançado')
       .addItem('Sync incremental',        'sincronizarJira')
       .addItem('Recriar DE_PARA',         'inicializarDeParaMenu')
-      .addItem('Reconfigurar acionadores','configurarAcionadores'))
+      .addItem('Reconfigurar acionadores','configurarAcionadores')
+      .addSeparator()
+      .addItem('Limpar abas extras',      'limparAbasExtras'))
     .addToUi();
 }
 
@@ -632,6 +634,49 @@ function getAvisoToken() {
   const d = parseInt(dias, 10);
   if (d > 15) return null;
   return { dias: d, expira: props.getProperty('TOKEN_EXPIRA') || '' };
+}
+
+// ── Limpeza de abas desnecessárias ───────────────────────────
+// Abas permitidas — qualquer outra é removida automaticamente
+const ABAS_PERMITIDAS = [
+  '🏠 INICIO', 'PAINEL', '📊 VISUAL', '📋 TABELA',
+  'RAW_PAI', 'RAW_FILHO', '⚠️ INCORRETOS', 'DE_PARA', '_SYNC_BUFFER'
+];
+
+function limparAbasExtras() {
+  PropertiesService.getScriptProperties().setProperty('ACAO_STATUS', 'aguardando');
+  PropertiesService.getScriptProperties().setProperty('ACAO_MSG', '');
+  ScriptApp.newTrigger('_executarLimparAbas').timeBased().after(1000).create();
+  const html = HtmlService.createHtmlOutput(_acaoPopupHtml('Verificando e removendo abas desnecessárias...', 'limpeza'))
+    .setWidth(400).setHeight(220);
+  SpreadsheetApp.getUi().showModalDialog(html, '📋 Limpar abas');
+}
+
+function _executarLimparAbas() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === '_executarLimparAbas') ScriptApp.deleteTrigger(t);
+  });
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const removidas = [];
+    ss.getSheets().forEach(sh => {
+      const nome = sh.getName();
+      if (!ABAS_PERMITIDAS.includes(nome)) {
+        // Não remove se for a última aba
+        if (ss.getSheets().length > 1) {
+          ss.deleteSheet(sh);
+          removidas.push(nome);
+          Logger.log('Aba removida: ' + nome);
+        }
+      }
+    });
+    const msg = removidas.length > 0
+      ? 'Removidas: ' + removidas.join(', ')
+      : 'Nenhuma aba extra encontrada — planilha já está limpa.';
+    PropertiesService.getScriptProperties().setProperties({ ACAO_STATUS: 'ok', ACAO_MSG: msg });
+  } catch(e) {
+    PropertiesService.getScriptProperties().setProperties({ ACAO_STATUS: 'erro', ACAO_MSG: String(e) });
+  }
 }
 
 function testarConexaoMenu() {
