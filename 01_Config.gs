@@ -681,15 +681,17 @@ function _testarConexao(email, token) {
                 'Erro HTTP ' + code;
     return { ok: false, msg: msg };
   }
-  // Busca total via endpoint clássico (v2) que sempre retorna total
-  const respTotal = UrlFetchApp.fetch(
-    JIRA_BASE + '/rest/api/2/search?jql=' + encodeURIComponent('project=' + PROJETO) + '&maxResults=0&fields=summary',
+  // API v3 com cursor não retorna total na busca
+  // Usa SYNC_TOTAL gravado pelo último sync — ou testa acesso com 1 issue
+  const syncTotal = PropertiesService.getScriptProperties().getProperty('SYNC_TOTAL');
+  if (syncTotal) return { ok: true, total: syncTotal };
+  // Primeira vez — busca 1 issue só para confirmar acesso ao projeto
+  const respSearch = UrlFetchApp.fetch(
+    JIRA_BASE + '/rest/api/3/search/jql?jql=' + encodeURIComponent('project=' + PROJETO) + '&maxResults=1&fields=summary',
     { method: 'GET', headers: { Authorization: 'Basic ' + auth, Accept: 'application/json' }, muteHttpExceptions: true }
   );
-  if (respTotal.getResponseCode() !== 200) return { ok: false, msg: 'Conexão OK mas erro ao buscar projeto: HTTP ' + respTotal.getResponseCode() };
-  const data = JSON.parse(respTotal.getContentText());
-  const total = data.total !== undefined ? data.total : '?';
-  return { ok: true, total: total };
+  if (respSearch.getResponseCode() !== 200) return { ok: false, msg: 'Erro ao acessar projeto: HTTP ' + respSearch.getResponseCode() };
+  return { ok: true, total: 'acesso confirmado' };
 }
 
 function salvarCredenciais(email, token) {
