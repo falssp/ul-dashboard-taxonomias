@@ -276,7 +276,7 @@ tr:hover td{background:#191d2e;}
     <div class="filter-group">
       <div class="filter-label">Campanha (pai)</div>
       <div style="position:relative;">
-        <input class="filter-search" id="filtCampanhaSearch" type="text" placeholder="Nome ou ID do pai..." oninput="filtrarCampanhas()" onfocus="filtrarCampanhas()" autocomplete="off">
+        <input class="filter-search" id="filtCampanhaSearch" type="text" placeholder="Nome ou ID do pai..." oninput="filtrarCampanhas()" onfocus="abrirDropdownCampanha()" autocomplete="off">
         <div class="filter-dropdown" id="filtCampanhaDropdown"></div>
       </div>
       <input type="hidden" id="filtCampanhaVal">
@@ -284,7 +284,7 @@ tr:hover td{background:#191d2e;}
     <div class="filter-group">
       <div class="filter-label">Filho</div>
       <div style="position:relative;">
-        <input class="filter-search" id="filtFilhoSearch" type="text" placeholder="Nome ou ID..." oninput="filtrarFilhos()" onfocus="filtrarFilhos()" autocomplete="off">
+        <input class="filter-search" id="filtFilhoSearch" type="text" placeholder="Nome ou ID..." oninput="filtrarFilhos()" onfocus="abrirDropdownFilho()" autocomplete="off">
         <div class="filter-dropdown" id="filtFilhoDropdown"></div>
       </div>
       <input type="hidden" id="filtFilhoVal">
@@ -494,13 +494,30 @@ function preencheSelect(id, vals, ph) {
     el.appendChild(o);
   });
 }
+function unicosPlataforma() {
+  // Explode valores compostos "Flashtalking | Meta | Youtube" em itens individuais
+  var set = {};
+  (dados.rows || []).forEach(function(r) {
+    var pl = gS(r, 'PLATAFORMA');
+    if (!pl || pl.startsWith('⚠️')) { set['Não Identificado'] = true; return; }
+    pl.split('|').forEach(function(p) {
+      var t = p.trim();
+      if (t) set[t] = true;
+    });
+  });
+  var arr = Object.keys(set).filter(function(v){ return v !== 'Não Identificado'; });
+  arr.sort(function(a,b){ return a.localeCompare(b,'pt-BR',{sensitivity:'base'}); });
+  if (set['Não Identificado']) arr.push('Não Identificado');
+  return arr;
+}
+
 function popularFiltros() {
   if (!dados.rows) return;
   preencheSelect('filtBU',        unicos('BU'),               'Todas as BUs');
   preencheSelect('filtAgencia',   unicos('AGÊNCIA'),          'Todas as agências');
   preencheSelect('filtVeiculo',   unicos('VEÍCULO'),          'Todos');
   preencheSelect('filtStatusAdp', unicos('STATUS ADP (PAI)'), 'Todos');
-  preencheSelect('filtPlataforma',unicos('PLATAFORMA'),       'Todas');
+  preencheSelect('filtPlataforma', unicosPlataforma(),        'Todas');
   preencheSelect('filtStatus',    unicos('STATUS'),           'Todos');
   popularMarcas();
 }
@@ -519,7 +536,15 @@ function rowsFiltradosSemCascata() {
     if (ag && norm(gS(r,'AGÊNCIA'))!==ag) return false;
     if (ve && gS(r,'VEÍCULO')!==ve) return false;
     if (sa && norm(gS(r,'STATUS ADP (PAI)'))!==sa) return false;
-    if (pl && gS(r,'PLATAFORMA')!==pl) return false;
+    if (pl) {
+      var plVal2 = gS(r,'PLATAFORMA');
+      if (pl === 'Não Identificado') {
+        if (plVal2 && !plVal2.startsWith('⚠️')) return false;
+      } else {
+        var plParts2 = plVal2.split('|').map(function(p){ return p.trim(); });
+        if (plParts2.indexOf(pl) === -1) return false;
+      }
+    }
     if (st && gS(r,'STATUS')!==st) return false;
     if (dateMode==='local' && (de||ate)) {
       var d=gS(r,campo); if(!d) return false;
@@ -622,13 +647,24 @@ function selecionarCampanha(key) {
   document.getElementById('filtCampanhaSearch').value = camp.key + ' — ' + camp.summary;
   document.getElementById('filtCampanhaVal').value = camp.key;
   document.getElementById('filtCampanhaDropdown').classList.remove('show');
-  limparFilho(true);
+  // Limpa filho ao trocar campanha
+  limparFilho();
   renderizar();
 }
 function limparCampanha() {
   document.getElementById('filtCampanhaSearch').value = '';
   document.getElementById('filtCampanhaVal').value = '';
   document.getElementById('filtCampanhaDropdown').classList.remove('show');
+}
+// Abre dropdown pai — fecha filho
+function abrirDropdownCampanha() {
+  document.getElementById('filtFilhoDropdown').classList.remove('show');
+  filtrarCampanhas();
+}
+// Abre dropdown filho — fecha pai
+function abrirDropdownFilho() {
+  document.getElementById('filtCampanhaDropdown').classList.remove('show');
+  filtrarFilhos();
 }
 
 var _filhosDisponiveis = [];
@@ -682,6 +718,11 @@ function selecionarFilho(key) {
   document.getElementById('filtFilhoSearch').value = filho.key + ' — ' + filho.summary;
   document.getElementById('filtFilhoVal').value = filho.key;
   document.getElementById('filtFilhoDropdown').classList.remove('show');
+  // Fixa o pai automaticamente se ainda não estiver selecionado
+  if (filho.paiKey && !document.getElementById('filtCampanhaVal').value) {
+    document.getElementById('filtCampanhaSearch').value = filho.paiKey + ' — ' + filho.paiSummary;
+    document.getElementById('filtCampanhaVal').value = filho.paiKey;
+  }
   renderizar();
 }
 function limparFilho() {
@@ -736,7 +777,16 @@ function filtrado() {
     if (fk && gS(r,'FILHO_KEY')!==fk) return false;
     if (ve && gS(r,'VEÍCULO')!==ve) return false;
     if (sa && norm(gS(r,'STATUS ADP (PAI)'))!==sa) return false;
-    if (pl && gS(r,'PLATAFORMA')!==pl) return false;
+    if (pl) {
+      // Match por valor individual dentro do campo composto (ex: "Meta" dentro de "Flashtalking | Meta | Youtube")
+      var plVal = gS(r,'PLATAFORMA');
+      if (pl === 'Não Identificado') {
+        if (plVal && !plVal.startsWith('⚠️')) return false;
+      } else {
+        var plParts = plVal.split('|').map(function(p){ return p.trim(); });
+        if (plParts.indexOf(pl) === -1) return false;
+      }
+    }
     if (st && gS(r,'STATUS')!==st) return false;
     if (dateMode==='local' && (de||ate)) {
       var d=gS(r,campo); if(!d) return false;
@@ -894,18 +944,10 @@ function renderizar() {
     html+='</div></div>';
   });
   document.getElementById('mainContent').innerHTML=html;
-  var temFiltro = _temFiltroAtivo();
   var btn = document.getElementById('btnExpandir');
-  if(temFiltro && !_tudoExpandido) {
-    _tudoExpandido = true;
-    if(btn) btn.textContent = '⊟ Recolher tudo';
-    document.querySelectorAll('.bu-block').forEach(function(el){ el.classList.remove('collapsed'); });
-    document.querySelectorAll('[id^="ag_"],[id^="mk_"]').forEach(function(el){ el.style.display=''; });
-    document.querySelectorAll('[id^="agA_"],[id^="mkA_"]').forEach(function(el){ el.style.transform=''; });
-  } else if(!temFiltro) {
-    _tudoExpandido = false;
-    if(btn) btn.textContent = '⊞ Expandir tudo';
-  }
+  // Sempre recolhido após renderizar — usuário expande o que quiser
+  _tudoExpandido = false;
+  if(btn) btn.textContent = '⊞ Expandir tudo';
 }
 
 var _tudoExpandido = false;
@@ -1058,15 +1100,18 @@ function _init(){
     return;
   }
 
-  // Sync label com timestamp
+  // Sync label — data/hora real do sync
   var syncLabel = document.getElementById('syncLabel');
   var syncDot   = document.getElementById('syncDot');
   if (dados.sync) {
-    var d = new Date(dados.sync);
-    var rel = tempoRelativo(dados.sync);
-    syncLabel.textContent = rel ? ('Sync ' + rel) : fmtData(dados.sync);
+    var dSync = new Date(dados.sync);
+    var rel   = tempoRelativo(dados.sync);
+    var hora  = ('0'+dSync.getHours()).slice(-2) + ':' + ('0'+dSync.getMinutes()).slice(-2);
+    var dia   = ('0'+dSync.getDate()).slice(-2) + '/' + ('0'+(dSync.getMonth()+1)).slice(-2);
+    syncLabel.textContent = rel ? ('Sync ' + rel) : ('Sync ' + dia + ' às ' + hora);
+    syncLabel.title = 'Último sync: ' + dSync.toLocaleString('pt-BR');
   } else {
-    syncLabel.textContent = 'Dados carregados';
+    syncLabel.textContent = 'Sync —';
   }
   syncDot.classList.remove('syncing');
 
