@@ -5,14 +5,12 @@
 
 const TIPOS_VALIDOS = ['Tarefa', 'Subtarefa'];
 
-// Nome da aba buffer — sempre oculta, deletada ao fim do sync
 const BUFFER_ABA = '_SYNC_BUFFER';
 
-// Chaves do PropertiesService usadas entre execuções
-const PROP_NEXT_TOKEN  = 'SYNC_NEXT_TOKEN';   // nextPageToken da próxima página
-const PROP_PAGINA      = 'SYNC_PAGINA';        // número da última página buscada
-const PROP_ACUMULADO   = 'SYNC_ACUMULADO';     // total de issues acumuladas
-const PROP_JQL_EXTRA   = 'SYNC_JQL_EXTRA';     // jql extra do sync atual ('' = completo)
+const PROP_NEXT_TOKEN  = 'SYNC_NEXT_TOKEN';
+const PROP_PAGINA      = 'SYNC_PAGINA';
+const PROP_ACUMULADO   = 'SYNC_ACUMULADO';
+const PROP_JQL_EXTRA   = 'SYNC_JQL_EXTRA';
 const PROP_SYNC_TOTAL  = 'SYNC_TOTAL';
 const PROP_ULTIMA_SYNC = 'ULTIMA_SYNC';
 
@@ -26,8 +24,6 @@ function _setProgresso(etapa, detalhe) {
 }
 
 function getProgresso() {
-  // Chamada frequente pelo popup (a cada 2s) — propositalmente sem Logger.log
-  // Para ver só os logs que importam, filtre por função no painel de execuções
   const p = PropertiesService.getScriptProperties();
   return {
     etapa:   p.getProperty('PROG_ETAPA')   || '',
@@ -36,13 +32,12 @@ function getProgresso() {
   };
 }
 
-// ── Buffer — aba oculta que armazena issues brutas entre execuções ──
+// ── Buffer ────────────────────────────────────────────────────
 function _bufferCriar(ss) {
   const old = ss.getSheetByName(BUFFER_ABA);
   if (old) ss.deleteSheet(old);
   const sh = ss.insertSheet(BUFFER_ABA);
   sh.hideSheet();
-  // Cabeçalho: uma coluna — cada linha é um JSON de issue
   sh.getRange(1, 1).setValue('JSON_ISSUE');
   return sh;
 }
@@ -51,9 +46,6 @@ function _bufferAppend(ss, issues) {
   if (!issues.length) return;
   let sh = ss.getSheetByName(BUFFER_ABA);
   if (!sh) sh = _bufferCriar(ss);
-
-  // Serializa apenas os campos usados pelo sistema (elimina description,
-  // comment, renderedFields e outros campos grandes do Jira)
   const rows = issues.map(i => {
     const f = i.fields || {};
     const slim = {
@@ -80,7 +72,6 @@ function _bufferAppend(ss, issues) {
     };
     return [JSON.stringify(slim)];
   });
-
   const last = sh.getLastRow();
   sh.getRange(last + 1, 1, rows.length, 1).setValues(rows);
 }
@@ -98,31 +89,23 @@ function _bufferDeletar(ss) {
   if (sh) try { ss.deleteSheet(sh); } catch(e) {}
 }
 
-// CacheService como camada secundária (até 100KB, expira em 6h)
 function _cacheSet(key, value) {
-  try {
-    CacheService.getScriptCache().put(key, value, 21600); // 6h
-  } catch(e) { Logger.log('Cache write ignorado: ' + e); }
+  try { CacheService.getScriptCache().put(key, value, 21600); } catch(e) {}
 }
 function _cacheGet(key) {
   try { return CacheService.getScriptCache().get(key); } catch(e) { return null; }
 }
 
-// ── Limpeza de triggers de busca/etapa2 ─────────────────────
+// ── Limpeza de triggers ───────────────────────────────────────
 function _limparTriggersBusca() {
   const LIMPAR = ['_buscarProximaPagina','_gravarRAWDoBusfer','_sincronizarEtapa2','sincronizarCompleto'];
   ScriptApp.getProjectTriggers().forEach(t => {
-    // Remove todos os one-shots de busca/gravação
-    // Preserva apenas o sincronizarJira recorrente (everyHours)
     const fn = t.getHandlerFunction();
     if (!LIMPAR.includes(fn)) return;
-    // sincronizarCompleto recorrente (everyHours) nunca deve existir — remove sempre
-    // Os outros são one-shots agendados por after() — remove sempre
     ScriptApp.deleteTrigger(t);
   });
 }
 
-// ── Limpeza de state entre syncs ─────────────────────────────
 function _limparEstado(ss) {
   _limparTriggersBusca();
   _bufferDeletar(ss);
@@ -134,30 +117,25 @@ function _limparEstado(ss) {
   _cacheSet('SYNC_NEXT_TOKEN', '');
 }
 
-// ── INÍCIO DO SYNC COMPLETO ───────────────────────────────────
+// ── SYNC COMPLETO ─────────────────────────────────────────────
 function sincronizarCompleto() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   _limparEstado(ss);
-
-  // Salva contexto para as execuções encadeadas
   const props = PropertiesService.getScriptProperties();
   props.setProperty(PROP_JQL_EXTRA, '');
   props.setProperty(PROP_PAGINA, '0');
   props.setProperty(PROP_ACUMULADO, '0');
-
   _bufferCriar(ss);
   _setProgresso('buscando', 'Conectando ao Jira...');
   Logger.log('Sync completo — iniciando busca paginada encadeada...');
-
   _executarPaginaBusca(ss, '', null, 0, 0);
 }
 
-// ── INÍCIO DO SYNC INCREMENTAL ────────────────────────────────
+// ── SYNC INCREMENTAL (1h) ─────────────────────────────────────
 function sincronizarJira() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   _limparEstado(ss);
 
-  // Verifica aviso de token a cada sync (e-mail + banner no painel)
   try { verificarAvisoToken(); } catch(e) { Logger.log('Aviso token: ' + e); }
 
   if (!PropertiesService.getScriptProperties().getProperty(PROP_ULTIMA_SYNC)) {
@@ -166,26 +144,22 @@ function sincronizarJira() {
   const raw = ss.getSheetByName('RAW_FILHO');
   if (!raw || raw.getLastRow() < 2) { sincronizarCompleto(); return; }
 
-  const jqlExtra = 'updated >= "-4h"';
+  const jqlExtra = 'updated >= "-1h"';
   const props = PropertiesService.getScriptProperties();
   props.setProperty(PROP_JQL_EXTRA, jqlExtra);
   props.setProperty(PROP_PAGINA, '0');
   props.setProperty(PROP_ACUMULADO, '0');
-
   _bufferCriar(ss);
   _setProgresso('buscando', 'Sync incremental — conectando...');
-  Logger.log('Sync incremental — iniciando busca...');
-
+  Logger.log('Sync incremental (1h) — iniciando busca...');
   _executarPaginaBusca(ss, jqlExtra, null, 0, 0);
 }
 
-// ── NÚCLEO: busca uma "fatia" de páginas dentro do limite de tempo ──
-// Roda dentro de sincronizarCompleto/sincronizarJira OU de _buscarProximaPagina
+// ── NÚCLEO DA BUSCA ───────────────────────────────────────────
 function _executarPaginaBusca(ss, jqlExtra, nextToken, paginaBase, acumuladoBase) {
   const { email, token } = _creds();
   const auth  = Utilities.base64Encode(email + ':' + token);
   const jql   = 'project=' + PROJETO + (jqlExtra ? ' AND ' + jqlExtra : '') + ' ORDER BY key ASC';
-  // Reserva 90s para gravar o buffer ao fim desta fatia
   const LIMITE_MS = 4.5 * 60 * 1000;
   const t0 = Date.now();
 
@@ -197,11 +171,9 @@ function _executarPaginaBusca(ss, jqlExtra, nextToken, paginaBase, acumuladoBase
 
   while (true) {
     if (Date.now() - t0 > LIMITE_MS) {
-      // Tempo esgotado — salva lote parcial e agenda próxima execução
       Logger.log('Limite de tempo atingido — acumulado=' + acumulado + ', agendando continuação...');
       break;
     }
-
     let url = JIRA_BASE + '/rest/api/3/search/jql?jql=' + encodeURIComponent(jql) +
               '&maxResults=100&fields=' + CAMPOS;
     if (token_next) url += '&nextPageToken=' + encodeURIComponent(token_next);
@@ -227,7 +199,7 @@ function _executarPaginaBusca(ss, jqlExtra, nextToken, paginaBase, acumuladoBase
     pagina++;
     acumulado += issues.length;
 
-    Logger.log('Página ' + pagina + ' | issues=' + issues.length + ' | acumulado=' + acumulado + ' | isLast=' + data.isLast);
+    Logger.log('Página ' + pagina + ' | issues=' + issues.length + ' | acumulado=' + acumulado);
     _setProgresso('buscando', 'Página ' + pagina + ' — ' + acumulado + ' issues carregadas...');
 
     if (data.isLast === true) { isLast = true; break; }
@@ -236,7 +208,6 @@ function _executarPaginaBusca(ss, jqlExtra, nextToken, paginaBase, acumuladoBase
     Utilities.sleep(150);
   }
 
-  // Persiste estado entre execuções
   const props = PropertiesService.getScriptProperties();
   props.setProperties({
     [PROP_NEXT_TOKEN]: token_next || '',
@@ -245,107 +216,68 @@ function _executarPaginaBusca(ss, jqlExtra, nextToken, paginaBase, acumuladoBase
   });
   _cacheSet('SYNC_NEXT_TOKEN', token_next || '');
 
-  // Appenda lote no buffer (aba oculta)
   if (lote.length) _bufferAppend(ss, lote);
 
   if (isLast) {
-    // Incremental com 0 issues novas — nada a fazer, preserva dados existentes
     if (acumulado === 0) {
-      Logger.log('Sync incremental: 0 issues novas — nenhuma atualização necessária.');
+      Logger.log('Sync incremental: 0 issues novas — dados já atualizados.');
       _setProgresso('concluido', '0 issues novas — dados já atualizados.');
       _bufferDeletar(ss);
       return;
     }
-    // Busca concluída com issues — passa para gravação
     Logger.log('Busca completa: ' + acumulado + ' issues — iniciando gravação...');
     _setProgresso('gravando', 'Busca concluída (' + acumulado + ' issues) — gravando RAW...');
     props.setProperty(PROP_SYNC_TOTAL, String(acumulado));
     ScriptApp.newTrigger('_gravarRAWDoBusfer').timeBased().after(2000).create();
   } else {
-    // Agenda próxima fatia de busca
     Logger.log('Agendando próxima página a partir da ' + (pagina + 1) + '...');
     ScriptApp.newTrigger('_buscarProximaPagina').timeBased().after(2000).create();
   }
 }
 
-// ── CONTINUAÇÃO DA BUSCA (trigger one-shot) ───────────────────
+// ── CONTINUAÇÃO DA BUSCA ──────────────────────────────────────
 function _buscarProximaPagina() {
-  // Remove este trigger
   ScriptApp.getProjectTriggers().forEach(t => {
     if (t.getHandlerFunction() === '_buscarProximaPagina') ScriptApp.deleteTrigger(t);
   });
-
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const props = PropertiesService.getScriptProperties();
-
-  const jqlExtra    = props.getProperty(PROP_JQL_EXTRA)   || '';
-  const paginaBase  = parseInt(props.getProperty(PROP_PAGINA)    || '0', 10);
-  const acumBase    = parseInt(props.getProperty(PROP_ACUMULADO) || '0', 10);
-  // Tenta cache primeiro, cai no PropertiesService
-  const nextToken   = _cacheGet('SYNC_NEXT_TOKEN') || props.getProperty(PROP_NEXT_TOKEN) || null;
-
+  const jqlExtra   = props.getProperty(PROP_JQL_EXTRA)   || '';
+  const paginaBase = parseInt(props.getProperty(PROP_PAGINA)    || '0', 10);
+  const acumBase   = parseInt(props.getProperty(PROP_ACUMULADO) || '0', 10);
+  const nextToken  = _cacheGet('SYNC_NEXT_TOKEN') || props.getProperty(PROP_NEXT_TOKEN) || null;
   if (!nextToken) {
-    // Perdeu o token — reinicia do zero
     Logger.log('nextPageToken perdido — reiniciando sync completo.');
     _setProgresso('buscando', 'Token perdido — reiniciando busca...');
     sincronizarCompleto();
     return;
   }
-
   Logger.log('Continuando busca a partir da página ' + (paginaBase + 1) + ' | acumulado=' + acumBase);
   _executarPaginaBusca(ss, jqlExtra, nextToken, paginaBase, acumBase);
 }
 
-// ── GRAVAÇÃO DO RAW A PARTIR DO BUFFER ───────────────────────
+// ── GRAVAÇÃO DO RAW ───────────────────────────────────────────
 function _gravarRAWDoBusfer() {
   ScriptApp.getProjectTriggers().forEach(t => {
     if (t.getHandlerFunction() === '_gravarRAWDoBusfer') ScriptApp.deleteTrigger(t);
   });
-
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   Logger.log('Lendo buffer...');
-
   const issues = _bufferLer(ss);
   if (!issues.length) {
     _setProgresso('erro', 'Buffer vazio — execute a sincronização novamente.');
     return;
   }
-
   Logger.log('Buffer: ' + issues.length + ' issues — separando e gravando RAW...');
-
-  const jqlExtra     = PropertiesService.getScriptProperties().getProperty(PROP_JQL_EXTRA) || '';
-  const incremental  = jqlExtra !== '';
+  const jqlExtra    = PropertiesService.getScriptProperties().getProperty(PROP_JQL_EXTRA) || '';
+  const incremental = jqlExtra !== '';
   const { pais, filhos, incorretos } = _separar(issues, incremental);
 
-  // ── AUDITORIA COMPLETA ─────────────────────────────────────
-  const nPais      = Object.keys(pais).length;
-  const nFilhos    = filhos.length;
+  const nPais       = Object.keys(pais).length;
+  const nFilhos     = filhos.length;
   const nIncorretos = incorretos.length;
-  const nTotal     = nPais + nFilhos + nIncorretos;
-  const nBuffer    = issues.length;
-  // Pais que têm filhos (campanhas) vs pais solo
-  const paisComFilho = Object.keys(pais).filter(pk => filhos.some(f => (f.fields.parent||{}).key === pk));
-  const nPaisComFilho = paisComFilho.length;
-  const nPaisSolo     = nPais - nPaisComFilho;
-  // Tickets de trabalho = filhos + pais solo
-  const nTrabalho = nFilhos + nPaisSolo;
-
-  Logger.log('══ AUDITORIA SYNC ══════════════════════════════');
-  Logger.log('Buffer lido:        ' + nBuffer + ' issues');
-  Logger.log('Separação total:    ' + nTotal  + ' (' + (nTotal===nBuffer?'✅ OK':'⚠️ DIVERGÊNCIA: '+(nBuffer-nTotal)+' perdidas') + ')');
-  Logger.log('  Pais (Tarefas):   ' + nPais   + ' total');
-  Logger.log('    Com subtarefas: ' + nPaisComFilho + ' (campanhas — não contam como tickets)');
-  Logger.log('    Solo:           ' + nPaisSolo     + ' (aparecem no painel como tickets)');
-  Logger.log('  Filhos:           ' + nFilhos);
-  Logger.log('  Incorretos:       ' + nIncorretos   + ' (tipo inválido — aba INCORRETOS)');
-  Logger.log('Tickets de trabalho:' + nTrabalho + ' (filhos + solos)');
-  Logger.log('Esperado no Jira:   ' + nBuffer   + ' (pais + filhos + incorretos)');
-  Logger.log('  Diferença:        ' + (nBuffer - nTrabalho) + ' = pais com filhos + incorretos (esperado)');
-  Logger.log('════════════════════════════════════════════════');
-
-  if (nTotal !== nBuffer) {
-    Logger.log('⚠️ ALERTA: ' + (nBuffer - nTotal) + ' issues não classificadas! Verificar _separar.');
-  }
+  const nTotal      = nPais + nFilhos + nIncorretos;
+  Logger.log('══ AUDITORIA ══ Buffer=' + issues.length + ' | Pais=' + nPais + ' | Filhos=' + nFilhos + ' | Incorretos=' + nIncorretos + ' | Total=' + nTotal + (nTotal===issues.length?' ✅':' ⚠️ DIVERGÊNCIA'));
 
   filhos.forEach(f => {
     const pk = (f.fields.parent || {}).key;
@@ -362,22 +294,18 @@ function _gravarRAWDoBusfer() {
   _gravarIncorretos(ss, incorretos);
 
   PropertiesService.getScriptProperties().setProperty(PROP_ULTIMA_SYNC, new Date().toISOString());
-
-  // Buffer não é mais necessário — deleta
   _bufferDeletar(ss);
   Logger.log('Buffer deletado. Agendando Etapa 2...');
-  _setProgresso('gravando', 'Calculando PAINEL, VISUAL e TABELA...');
-
+  _setProgresso('gravando', 'Calculando PAINEL e TABELA...');
   ScriptApp.newTrigger('_sincronizarEtapa2').timeBased().after(2000).create();
 }
 
-// ── ETAPA 2: PAINEL + VISUAL + TABELA ────────────────────────
+// ── ETAPA 2: PAINEL + TABELA + INICIO ────────────────────────
 function _sincronizarEtapa2() {
   ScriptApp.getProjectTriggers().forEach(t => {
     if (t.getHandlerFunction() === '_sincronizarEtapa2') ScriptApp.deleteTrigger(t);
   });
-
-  Logger.log('Etapa 2: PAINEL + VISUAL + TABELA...');
+  Logger.log('Etapa 2: PAINEL + TABELA + INICIO...');
   _setProgresso('gravando', 'Reconstruindo PAINEL...');
 
   const ss   = SpreadsheetApp.getActiveSpreadsheet();
@@ -403,14 +331,20 @@ function _sincronizarEtapa2() {
   _setProgresso('calculando', 'Calculando PAINEL...');
   _gravarPainel(ss, Object.values(pais), filhos);
 
-  _setProgresso('calculando', 'Gerando VISUAL...');
-  try { _gravarVisual(ss); } catch(e) { Logger.log('VISUAL: ' + e); }
-
   _setProgresso('calculando', 'Gerando TABELA...');
   try { _gravarTabela(ss); } catch(e) { Logger.log('TABELA: ' + e); }
 
+  _setProgresso('formatando', 'Atualizando manual (INICIO)...');
+  try { _criarAbaInicio(ss); } catch(e) { Logger.log('INICIO: ' + e); }
+
   _setProgresso('formatando', 'Formatando planilha...');
   try { formatarPlanilha(); } catch(e) { Logger.log('Formatação: ' + e); }
+
+  // Reordena abas: INICIO primeiro
+  try {
+    const shInicio = ss.getSheetByName('🏠 INICIO');
+    if (shInicio) ss.setActiveSheet(shInicio).moveActiveSheet(1);
+  } catch(e) {}
 
   const total = PropertiesService.getScriptProperties().getProperty(PROP_SYNC_TOTAL) || '?';
   Logger.log('Sync concluído: ' + total + ' issues.');
@@ -431,10 +365,8 @@ function _separar(issues, incremental) {
 
   if (incremental) {
     const rawP = ss.getSheetByName('RAW_PAI'), rawF = ss.getSheetByName('RAW_FILHO');
-
-    // Usa Sets para lookup O(1) — evita timeout em volumes grandes (4000+ issues)
-    const paisKeys     = new Set(Object.keys(pais));
-    const filhosKeys   = new Set(filhos.map(f => f.key));
+    const paisKeys       = new Set(Object.keys(pais));
+    const filhosKeys     = new Set(filhos.map(f => f.key));
     const incorretosKeys = new Set(incorretos.map(i => i.key));
 
     if (rawP && rawP.getLastRow() > 1) {
@@ -591,4 +523,33 @@ function exportarDados(params) {
     Logger.log('Erro exportarDados: ' + e);
     return { ok: false, erro: String(e) };
   }
+}
+
+// ── Busca simples (usado por getDadosPeriodo) ─────────────────
+function _buscar(jqlExtra) {
+  const { email, token } = _creds();
+  const auth = Utilities.base64Encode(email + ':' + token);
+  const jql  = 'project=' + PROJETO + (jqlExtra ? ' AND ' + jqlExtra : '') + ' ORDER BY key ASC';
+  const issues = [];
+  let nextToken = null;
+  let pagina = 0;
+  while (true) {
+    let url = JIRA_BASE + '/rest/api/3/search/jql?jql=' + encodeURIComponent(jql) +
+              '&maxResults=100&fields=' + CAMPOS;
+    if (nextToken) url += '&nextPageToken=' + encodeURIComponent(nextToken);
+    const resp = UrlFetchApp.fetch(url, {
+      method: 'GET',
+      headers: { Authorization: 'Basic ' + auth, Accept: 'application/json' },
+      muteHttpExceptions: true
+    });
+    if (resp.getResponseCode() !== 200) break;
+    const data = JSON.parse(resp.getContentText());
+    issues.push(...(data.issues || []));
+    pagina++;
+    if (data.isLast || !data.nextPageToken) break;
+    nextToken = data.nextPageToken;
+    Utilities.sleep(150);
+    if (pagina > 50) break; // safeguard
+  }
+  return issues;
 }

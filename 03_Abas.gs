@@ -8,7 +8,6 @@ const COLS_CENTRO = ['KEY','TIPO','STATUS','CRIADO','ATUALIZADO','DATA LIMITE',
   'QTD TAXONOMIA','QTD TAX.','STATUS ADP','STATUS ADP (PAI)','BU','MARCA (JIRA)',
   'PLATAFORMA','ÚLT. ATU.','PARENT_KEY','FILHO_KEY','PAI_KEY','VEÍCULO','CAMP. MÍDIA'];
 
-// Aplica alinhamento horizontal por coluna com base em COLS_CENTRO
 function _alinharColunas(sh, hdr, nRows) {
   if (nRows < 2) return;
   hdr.forEach((h, i) => {
@@ -18,7 +17,6 @@ function _alinharColunas(sh, hdr, nRows) {
   });
 }
 
-// Wrap nas colunas de texto livre, corte nas demais
 function _wrapColunas(sh, hdr, nRows) {
   const WRAP_COLS = ['SUMMARY','PAI_SUMMARY','PARENT_SUMMARY','SUMMARY (FILHO)','ASSIGNEE','RELATOR','RESPONSÁVEL','AGÊNCIA_UL','AGÊNCIA'];
   hdr.forEach((h, i) => {
@@ -28,14 +26,12 @@ function _wrapColunas(sh, hdr, nRows) {
   });
 }
 
-// Protege o cabeçalho (linha 1) — só o dono pode editar
 function _protegerCabecalho(sh) {
   try {
-    // Remove proteções antigas na mesma aba
     sh.getProtections(SpreadsheetApp.ProtectionType.RANGE).forEach(p => p.remove());
     const prot = sh.getRange(1, 1, 1, sh.getLastColumn()).protect();
     prot.setDescription('Cabeçalho — não editar');
-    prot.setWarningOnly(true); // aviso ao tentar editar, mas não bloqueia completamente
+    prot.setWarningOnly(true);
   } catch(e) {}
 }
 
@@ -83,6 +79,7 @@ function _gravarRAWFilho(ss, filhos) {
       _fmt(f.created),_fmt(f.updated),c.relator,c.duedate,c.qtdTax,
       c.statusAdp,c.bu,c.marcaJira,c.plataforma,c.agencia,c.campMidia]);
   });
+  ss.getRange ? null : (ss = SpreadsheetApp.getActiveSpreadsheet());
   sh.getRange(1,1,rows.length,H.length).setValues(rows);
   _estilizarSheet(sh, rows.length, H.length, true);
   [80,75,340,80,300,110,160,90,90,180,90,60,110,120,110,100,110,120].forEach((w,i)=>sh.setColumnWidth(i+1,w));
@@ -137,7 +134,6 @@ function _gravarDePara(sh) {
   sh.getRange(1,1,d.length,3).setValues(d);
   _estilizarSheet(sh, d.length, 3, true);
   [90,220,200].forEach((w,i)=>sh.setColumnWidth(i+1,w));
-  // Alinhamento: TIPO centralizado, TOKEN e NOME à esquerda
   sh.getRange(1,1,d.length,3).setVerticalAlignment('middle');
   sh.getRange(2,1,d.length-1,1).setHorizontalAlignment('center');
   sh.getRange(2,2,d.length-1,2).setHorizontalAlignment('left');
@@ -172,15 +168,15 @@ function _gravarPainel(ss, pais, filhos) {
   const sh = ss.insertSheet('PAINEL');
   const dv = _carregarDePara('VEICULO');
 
-  // Filtra filhos atualizados nos últimos 12 meses — mantém PAINEL enxuto
-  // RAW_PAI e RAW_FILHO ficam completos (fonte de verdade local)
+  // Filtra filhos atualizados nos últimos 12 meses
   const corte = new Date();
   corte.setFullYear(corte.getFullYear() - 1);
   const corteISO = corte.toISOString().substring(0, 10);
   filhos = filhos.filter(function(f) {
     const upd = String((f.fields && f.fields.updated) || '').substring(0, 10);
-    return !upd || upd >= corteISO; // inclui sem data para não perder dados
+    return !upd || upd >= corteISO;
   });
+
   const H = ['PAI_KEY','PAI_SUMMARY','BU','AGÊNCIA','MARCA (JIRA)','CAMP. MÍDIA','STATUS ADP (PAI)',
              'FILHO_KEY','SUMMARY (FILHO)','VEÍCULO','STATUS','RESPONSÁVEL','RELATOR',
              'QTD TAX.','PLATAFORMA','DATA LIMITE','ÚLT. ATU.'];
@@ -244,128 +240,162 @@ function _gravarPainel(ss, pais, filhos) {
   _trim(sh, rows.length+2, H.length);
 }
 
-// ── VISUAL ────────────────────────────────────────────────────
+// ── TABELA — atualização manual ───────────────────────────────
 function atualizarAbas() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  try { _gravarVisual(ss); } catch(e) { Logger.log('VISUAL: '+e); }
   try { _gravarTabela(ss); } catch(e) { Logger.log('TABELA: '+e); }
-  SpreadsheetApp.getUi().alert('Abas VISUAL e TABELA atualizadas.');
+  SpreadsheetApp.getUi().alert('Aba TABELA atualizada.');
 }
 
 function _gravarVisual(ss) {
-  const painel = ss.getSheetByName('PAINEL'); if (!painel) return;
+  // VISUAL eliminado — visualização feita pelo painel HTML
+  // Remove aba legada se existir
   const old = ss.getSheetByName('📊 VISUAL'); if (old) ss.deleteSheet(old);
-  const sh = ss.insertSheet('📊 VISUAL');
-  const data = painel.getDataRange().getValues(), hdr = data[0].map(String);
-  const I = {};
-  hdr.forEach((h,i) => I[h]=i);
-  const rows = data.slice(1).filter(r => r[0] !== undefined && r[0] !== '' && !String(r[0]).startsWith('⏱'));
-  const arvore = {};
-  rows.forEach(r => {
-    const bu=String(r[I['BU']]||'⚠️ Sem BU'), ag=String(r[I['AGÊNCIA']]||'⚠️ Sem agência');
-    const mk=String(r[I['MARCA (JIRA)']]||'⚠️ Não mapeada'), camp=String(r[I['PAI_SUMMARY']]||'—');
-    if(!arvore[bu]) arvore[bu]={};
-    if(!arvore[bu][ag]) arvore[bu][ag]={};
-    if(!arvore[bu][ag][mk]) arvore[bu][ag][mk]={};
-    if(!arvore[bu][ag][mk][camp]) arvore[bu][ag][mk][camp]=[];
-    arvore[bu][ag][mk][camp].push(r);
-  });
-  let estimativa = 5;
-  for(const bu of Object.keys(arvore)){
-    estimativa += 1;
-    for(const ag of Object.keys(arvore[bu]||{})){
-      estimativa += 1;
-      for(const mk of Object.keys(arvore[bu][ag]||{})){
-        estimativa += 1;
-        for(const camp of Object.keys(arvore[bu][ag][mk]||{})){
-          estimativa += 2 + arvore[bu][ag][mk][camp].length;
-        }
-      }
-    }
-    estimativa += 1;
-  }
-  const linhasNecessarias = estimativa + 20;
-  try {
-    const atualRows = sh.getMaxRows();
-    if (linhasNecessarias > atualRows) sh.insertRowsAfter(atualRows, linhasNecessarias - atualRows);
-  } catch(e) {}
+  Logger.log('VISUAL eliminado — usando painel HTML.');
+}
 
-  const CORES=['#2E5BCD','#7C3AED','#059669','#D97706','#DC2626','#0891B2','#7C2D12','#4F46E5'];
-  const corBU={};let ci=0,ln=1;
-  sh.getRange(ln,1,1,9).merge().setValue('📋 Dashboard Taxonomias UL')
-    .setBackground('#1a1a2e').setFontColor('#fff').setFontSize(12).setFontWeight('bold')
-    .setHorizontalAlignment('left').setVerticalAlignment('middle');
-  sh.setRowHeight(ln++,24);
-  const sync = painel.getRange(painel.getLastRow(),1).getValue();
-  sh.getRange(ln,1,1,9).merge().setValue(String(sync))
-    .setBackground('#252d42').setFontColor('#8899bb').setFontSize(8).setFontStyle('italic')
-    .setHorizontalAlignment('left');
-  sh.setRowHeight(ln++,14);
-  for(const bu of Object.keys(arvore).sort()){
-    if(!corBU[bu]) corBU[bu]=CORES[ci++%CORES.length];
-    const cor=corBU[bu];
-    const tot=Object.values(arvore[bu]).flatMap(a=>Object.values(a)).flatMap(m=>Object.values(m)).flat().length;
-    if(ln > 3) {
-      sh.getRange(ln,1,1,9).merge().setValue('').setBackground('#f0f0f0');
-      sh.setRowHeight(ln++,5);
+
+// ── 🏠 INICIO — manual gerado automaticamente ────────────────
+function _criarAbaInicio(ss) {
+  const old = ss.getSheetByName('🏠 INICIO'); if (old) ss.deleteSheet(old);
+  const sh = ss.insertSheet('🏠 INICIO');
+  sh.setTabColor('#2E5BCD');
+  sh.hideGridlines();
+
+  const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const syncTotal = PropertiesService.getScriptProperties().getProperty('SYNC_TOTAL') || '?';
+  const tokenExpira = PropertiesService.getScriptProperties().getProperty('TOKEN_EXPIRA') || '?';
+
+  const linhas = [
+    ['📋 [UL] Dashboard_Taxonomias'],
+    ['Unilever BR · Grasp x StormX'],
+    [''],
+    ['⏱ Última atualização: ' + now + ' · ' + syncTotal + ' issues sincronizadas'],
+    [''],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    ['📌 O QUE É ESTE ARQUIVO'],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    [''],
+    ['Este arquivo sincroniza automaticamente os tickets do Jira (projeto UL) e organiza'],
+    ['os dados em abas estruturadas. O painel visual fica no link do Web App abaixo.'],
+    [''],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    ['🗂 ABAS DA PLANILHA'],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    [''],
+    ['🏠 INICIO        →  Este manual'],
+    ['PAINEL          →  Fonte de dados do painel HTML (pai × filho × veículo)'],
+    ['📋 TABELA       →  Cópia formatada do PAINEL para consulta direta'],
+    ['RAW_PAI         →  Todas as Tarefas do Jira (campanhas)'],
+    ['RAW_FILHO       →  Todas as Subtarefas do Jira (tickets de trabalho)'],
+    ['DE_PARA         →  Dicionário de normalização — edite aqui para mapear veículos e marcas'],
+    ['⚠️ INCORRETOS   →  Issues com tipo inválido — corrija no Jira'],
+    [''],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    ['⚙️ MENU — 📋 Dashboard UL'],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    [''],
+    ['1. Configurar credenciais  →  E-mail Atlassian + API Token do Jira'],
+    ['2. Testar conexão          →  Verifica se o token ainda funciona'],
+    ['3. Sincronizar             →  Força sync completo imediato'],
+    ['4. Atualizar abas visuais  →  Regenera TABELA sem rebuscar o Jira'],
+    ['Abrir painel               →  Abre o painel HTML em nova aba'],
+    ['Avançado › Sync incremental         →  Força sync das últimas 1h'],
+    ['Avançado › Recriar DE_PARA          →  Restaura mapeamentos padrão'],
+    ['Avançado › Reconfigurar acionadores →  Recria o trigger de 1h'],
+    ['Avançado › Limpar abas extras       →  Remove abas fora do padrão'],
+    [''],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    ['🔄 SYNC AUTOMÁTICO'],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    [''],
+    ['O sistema roda sincronizarJira() automaticamente a cada 1h.'],
+    ['Busca apenas issues atualizadas nas últimas 1h e faz merge com os dados existentes.'],
+    ['Sync completo (todas as issues) só acontece na primeira configuração ou quando forçado.'],
+    [''],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    ['🗺 DE_PARA — como adicionar mapeamentos'],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    [''],
+    ['Abra a aba DE_PARA e adicione uma linha no formato:'],
+    ['  TIPO  |  TOKEN_JIRA       |  NOME_OFICIAL'],
+    ['  MARCA |  Dove Deos        |  Dove'],
+    ['  VEICULO | YT              |  YouTube'],
+    [''],
+    ['O sistema lê o título da issue e mapeia para o nome oficial.'],
+    ['Se aparecer "⚠️ Não mapeado" no painel, adicione o token aqui.'],
+    [''],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    ['🔑 TOKEN DO JIRA'],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    [''],
+    ['Token atual válido até: ' + tokenExpira],
+    ['O sistema envia e-mail automático quando faltam 10 dias para vencer.'],
+    ['Para renovar: id.atlassian.com → Segurança → Tokens de API'],
+    ['Depois: Menu → 1. Configurar credenciais'],
+    [''],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    ['⚠️ INCORRETOS — o que fazer'],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    [''],
+    ['Issues com tipo inválido (Epic, História, etc) ficam na aba ⚠️ INCORRETOS.'],
+    ['Elas não aparecem no painel. Para corrigir: abra o ticket no Jira e mude o tipo'],
+    ['para Tarefa (pai) ou Subtarefa (filho). No próximo sync ela some dos INCORRETOS.'],
+    [''],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    ['📞 SUPORTE'],
+    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
+    [''],
+    ['Repositório: https://github.com/falssp/ul-dashboard-taxonomias'],
+    ['Responsável técnico: StormX Data & Tech'],
+    [''],
+  ];
+
+  // Escreve tudo de uma vez
+  sh.getRange(1, 1, linhas.length, 1).setValues(linhas);
+
+  // Formatação em batch
+  const nRows = linhas.length;
+  sh.getRange(1, 1, nRows, 1)
+    .setFontFamily('Inter, Arial, sans-serif')
+    .setFontSize(11)
+    .setFontColor('#e8ecf4')
+    .setBackground('#0f1117')
+    .setVerticalAlignment('middle')
+    .setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+
+  // Título principal
+  sh.getRange(1, 1).setFontSize(18).setFontWeight('bold').setFontColor('#ffffff');
+  sh.setRowHeight(1, 36);
+
+  // Subtítulo
+  sh.getRange(2, 1).setFontSize(12).setFontColor('#6b7a9e');
+  sh.setRowHeight(2, 24);
+
+  // Linha de sync
+  sh.getRange(4, 1).setFontSize(10).setFontColor('#4f7ef8').setFontStyle('italic');
+
+  // Separadores e títulos de seção
+  const separadores = [6, 8, 13, 15, 25, 27, 36, 38, 44, 46, 53, 55, 62, 64, 71, 73, 78, 80];
+  separadores.forEach(ln => {
+    const cell = sh.getRange(ln, 1);
+    const val = String(linhas[ln-1][0]);
+    if (val.startsWith('━')) {
+      cell.setFontColor('#2a3050').setFontSize(9);
+      sh.setRowHeight(ln, 8);
+    } else {
+      cell.setFontSize(12).setFontWeight('bold').setFontColor('#4f7ef8');
+      sh.setRowHeight(ln, 28);
     }
-    sh.getRange(ln,1,1,9).merge().setValue('  '+bu+'   ('+(tot===1?'1 ticket':tot+' tickets')+')')
-      .setBackground(cor).setFontColor('#fff').setFontSize(11).setFontWeight('bold')
-      .setHorizontalAlignment('left').setVerticalAlignment('middle');
-    sh.setRowHeight(ln++,22);
-    for(const ag of Object.keys(arvore[bu]).sort()){
-      const totAg=Object.values(arvore[bu][ag]).flatMap(m=>Object.values(m)).flat().length;
-      sh.getRange(ln,1,1,9).merge().setValue('  🏢 '+ag+'   ('+(totAg===1?'1 ticket':totAg+' tickets')+')')
-        .setBackground('#e8ecf4').setFontColor('#374151').setFontSize(10).setFontWeight('bold')
-        .setHorizontalAlignment('left').setVerticalAlignment('middle');
-      sh.setRowHeight(ln++,20);
-      for(const mk of Object.keys(arvore[bu][ag]).sort()){
-        const totMk=Object.values(arvore[bu][ag][mk]).flat().length;
-        sh.getRange(ln,1,1,9).merge().setValue('    ◈ '+mk+'   ('+(totMk===1?'1 ticket':totMk+' tickets')+')')
-          .setBackground('#f5f7ff').setFontColor(cor).setFontSize(9).setFontWeight('bold')
-          .setHorizontalAlignment('left').setVerticalAlignment('middle');
-        sh.setRowHeight(ln++,18);
-        for(const camp of Object.keys(arvore[bu][ag][mk]).sort()){
-          const cr=arvore[bu][ag][mk][camp], totC=cr.length;
-          sh.getRange(ln,1,1,9).merge().setValue('      ◆ '+camp+'   ('+(totC===1?'1 ticket':totC+' tickets')+')')
-            .setBackground('#dce3ff').setFontColor('#1e3a8a').setFontSize(9).setFontWeight('bold')
-            .setHorizontalAlignment('left').setVerticalAlignment('middle');
-          sh.setRowHeight(ln++,18);
-          // Cabeçalho das colunas de ticket
-          sh.getRange(ln,1,1,9).setValues([['Filho / Veículo','Status ADP','Status','Plataforma','Qtd Tax','Responsável','','','Últ. Atu.']])
-            .setBackground('#374151').setFontColor('#fff').setFontSize(8).setFontWeight('bold')
-            .setHorizontalAlignment('center').setVerticalAlignment('middle');
-          sh.setRowHeight(ln++,16);
-          cr.forEach(r=>{
-            const fsum=String(r[I['SUMMARY (FILHO)']]||'—'), vei=String(r[I['VEÍCULO']]||'—');
-            const label=fsum!=='(sem subtarefas)'?fsum+' / '+vei:fsum;
-            const sts=String(r[I['STATUS']]||'—');
-            const row=sh.getRange(ln,1,1,9);
-            row.setValues([[label,String(r[I['STATUS ADP (PAI)']]||''),sts,String(r[I['PLATAFORMA']]||''),
-              r[I['QTD TAX.']]||'',String(r[I['RESPONSÁVEL']]||''),'',' ',
-              (function(v){
-                if(!v) return '';
-                var s=String(v);
-                var m=s.match(/(\d{4})-(\d{2})-(\d{2})/);
-                if(m) return m[3]+'/'+m[2]+'/'+m[1];
-                if(s.includes('GMT')||s.includes('UTC')){var d=new Date(s);if(!isNaN(d))return ('0'+d.getDate()).slice(-2)+'/'+ ('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();}
-                return s.substring(0,10);
-              })(r[I['ÚLT. ATU.']])]])
-              .setFontSize(9).setBackground('#fff').setFontColor('#1f2937')
-              .setHorizontalAlignment('center').setVerticalAlignment('middle');
-            sh.getRange(ln,1).setHorizontalAlignment('left')
-              .setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
-            row.setBorder(true,true,true,true,false,false,'#d1d5db',SpreadsheetApp.BorderStyle.SOLID);
-            sh.setRowHeight(ln++,18);
-          });
-        }
-      }
-    }
+  });
+
+  // Linhas vazias mais compactas
+  for (let i = 1; i <= nRows; i++) {
+    if (String(linhas[i-1][0]).trim() === '') sh.setRowHeight(i, 10);
   }
-  [310,95,105,100,65,140,15,95,95].forEach((w,i)=>sh.setColumnWidth(i+1,w));
-  sh.setFrozenRows(1);
-  const visualLastRow = sh.getLastRow();
-  _trim(sh, visualLastRow, 9);
+
+  sh.setColumnWidth(1, 720);
+  _trim(sh, nRows, 1);
 }
 
 // ── TABELA ────────────────────────────────────────────────────
@@ -376,25 +406,19 @@ function _gravarTabela(ss) {
   const data=painel.getDataRange().getValues();
   if(data.length<2) return;
   const hdr=data[0].map(String);
-  // Cabeçalho
   sh.getRange(1,1,1,hdr.length).setValues([hdr])
     .setBackground('#1a1a2e').setFontColor('#fff').setFontWeight('bold').setFontSize(10)
     .setHorizontalAlignment('center').setVerticalAlignment('middle');
   sh.setRowHeight(1,30); sh.setFrozenRows(1); sh.setFrozenColumns(2);
-  // Dados
   const rows=data.slice(1).filter(r=>r[0]!==undefined&&r[0]!==''&&!String(r[0]).startsWith('⏱'));
   if(!rows.length) return;
   sh.getRange(2,1,rows.length,hdr.length).setValues(rows).setFontSize(10);
-  // Zebra + altura + alinhamento vertical
   for(let i=0;i<rows.length;i++){
     sh.getRange(i+2,1,1,hdr.length)
       .setBackground(i%2===0?'#f0f4ff':'#fff')
       .setVerticalAlignment('middle');
-    // não redefine altura — respeita ajustes manuais
   }
-  // Alinhamento horizontal por coluna
   _alinharColunas(sh, hdr, rows.length+1);
-  // Wrap nas colunas de texto
   _wrapColunas(sh, hdr, rows.length+1);
   [80,340,115,115,120,115,115,80,320,115,115,155,155,55,100,90,90].forEach((w,i)=>sh.setColumnWidth(i+1,w));
   try { const f=sh.getFilter(); if(f) f.remove(); } catch(e) {}
@@ -431,12 +455,10 @@ function _gravarIncorretos(ss, incorretos) {
 
 // ── Helpers de estilo ─────────────────────────────────────────
 function _estilizarSheet(sh, nRows, nCols, isNova) {
-  // Cabeçalho — sempre atualiza
   sh.getRange(1,1,1,nCols)
     .setBackground('#1a1a2e').setFontColor('#fff').setFontWeight('bold')
     .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontSize(10);
   sh.setRowHeight(1,30);
-  // Dados — zebra e alinhamento sempre; altura só na primeira criação
   for(let i=2;i<=nRows;i++){
     sh.getRange(i,1,1,nCols)
       .setVerticalAlignment('middle').setFontSize(10)

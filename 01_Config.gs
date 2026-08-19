@@ -79,7 +79,7 @@ h1{font-size:18px;font-weight:700;color:#111827;margin-bottom:5px;letter-spacing
     </div>
     <div class="step" id="s3">
       <div class="si">3</div>
-      <div class="sb"><div class="st">Calculando PAINEL</div><div class="sd" id="d3">PAINEL · VISUAL · TABELA</div></div>
+      <div class="sb"><div class="st">Calculando PAINEL</div><div class="sd" id="d3">PAINEL · TABELA</div></div>
     </div>
     <div class="step" id="s4">
       <div class="si">4</div>
@@ -175,7 +175,7 @@ function onOpen() {
     .addItem('2. Testar conexão',         'testarConexaoMenu')
     .addSeparator()
     .addItem('3. Sincronizar',            'abrirInstalador')
-    .addItem('4. Atualizar abas visuais', 'atualizarAbasMenu')
+    .addItem('4. Atualizar TABELA',       'atualizarAbasMenu')
     .addSeparator()
     .addItem('Abrir painel',              'abrirPainel')
     .addSeparator()
@@ -205,7 +205,7 @@ function _executarConfigurarAcionadores() {
     _configurarAcionadoresInterno();
     PropertiesService.getScriptProperties().setProperties({
       ACAO_STATUS: 'ok',
-      ACAO_MSG: 'Acionadores reconfigurados. Apenas sincronizarJira (a cada 4h) está ativo.'
+      ACAO_MSG: 'Acionadores reconfigurados. Apenas sincronizarJira (a cada 1h) está ativo.'
     });
   } catch(e) {
     PropertiesService.getScriptProperties().setProperties({ ACAO_STATUS: 'erro', ACAO_MSG: e.message });
@@ -223,8 +223,8 @@ function _configurarAcionadoresInterno() {
     ScriptApp.deleteTrigger(t);
   });
   const jaExiste = ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'sincronizarJira' && t.getTriggerSource() === ScriptApp.TriggerSource.CLOCK);
-  if (!jaExiste) ScriptApp.newTrigger('sincronizarJira').timeBased().everyHours(4).create();
-  Logger.log('Acionadores reconfigurados: sincronizarJira a cada 4h.');
+  if (!jaExiste) ScriptApp.newTrigger('sincronizarJira').timeBased().everyHours(1).create();
+  Logger.log('Acionadores reconfigurados: sincronizarJira a cada 1h.');
 }
 
 // ── Popup genérico para ações rápidas ────────────────────────
@@ -281,9 +281,9 @@ function atualizarAbasMenu() {
   PropertiesService.getScriptProperties().setProperty('ACAO_STATUS', 'aguardando');
   PropertiesService.getScriptProperties().setProperty('ACAO_MSG', '');
   ScriptApp.newTrigger('_executarAtualizarAbas').timeBased().after(1000).create();
-  const html = HtmlService.createHtmlOutput(_acaoPopupHtml('Atualizando VISUAL e TABELA...', 'abas'))
+  const html = HtmlService.createHtmlOutput(_acaoPopupHtml('Atualizando TABELA...', 'abas'))
     .setWidth(400).setHeight(220);
-  SpreadsheetApp.getUi().showModalDialog(html, '📋 Atualizar abas visuais');
+  SpreadsheetApp.getUi().showModalDialog(html, '📋 Atualizar TABELA');
 }
 function _executarAtualizarAbas() {
   ScriptApp.getProjectTriggers().forEach(t => {
@@ -291,11 +291,10 @@ function _executarAtualizarAbas() {
   });
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    _gravarVisual(ss);
     _gravarTabela(ss);
     PropertiesService.getScriptProperties().setProperties({
       ACAO_STATUS: 'ok',
-      ACAO_MSG: 'Abas VISUAL e TABELA atualizadas com sucesso.'
+      ACAO_MSG: 'Aba TABELA atualizada com sucesso.'
     });
   } catch(e) {
     PropertiesService.getScriptProperties().setProperties({ ACAO_STATUS: 'erro', ACAO_MSG: String(e) });
@@ -612,14 +611,14 @@ function getAvisoToken() {
 
 // ── Limpeza de abas desnecessárias ───────────────────────────
 const ABAS_PERMITIDAS = [
-  '🏠 INICIO', 'PAINEL', '📊 VISUAL', '📋 TABELA',
+  '🏠 INICIO', 'PAINEL', '📋 TABELA',
   'RAW_PAI', 'RAW_FILHO', '⚠️ INCORRETOS', 'DE_PARA', '_SYNC_BUFFER'
 ];
 
 function _limparAbasExtrasInterno() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const permitidas = new Set([
-    '🏠 INICIO','PAINEL','📊 VISUAL','📋 TABELA',
+    '🏠 INICIO','PAINEL','📋 TABELA',
     'RAW_PAI','RAW_FILHO','⚠️ INCORRETOS','DE_PARA','_SYNC_BUFFER'
   ]);
   ss.getSheets().forEach(function(sh) {

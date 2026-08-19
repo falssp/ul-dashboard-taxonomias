@@ -112,7 +112,7 @@ function getDadosPeriodo(de, ate, campo) {
 
 // ── Formatação da planilha ────────────────────────────────────
 const ABAS_PERMITIDAS_SET = new Set([
-  '🏠 INICIO','PAINEL','📊 VISUAL','📋 TABELA',
+  '🏠 INICIO','PAINEL','📋 TABELA',
   'RAW_PAI','RAW_FILHO','⚠️ INCORRETOS','DE_PARA','_SYNC_BUFFER'
 ]);
 
