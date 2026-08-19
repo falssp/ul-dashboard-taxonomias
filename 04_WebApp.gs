@@ -15,20 +15,16 @@ function getDados() {
   const iFilhoKey = hdr.indexOf('FILHO_KEY');
   for (let i = 1; i < vals.length; i++) {
     const r = vals[i];
-    // Descarta só a linha de timestamp (⏱) — mantém orphans (PAI_KEY vazio mas FILHO_KEY preenchido)
     const paiKey   = iPaiKey   >= 0 ? String(r[iPaiKey]   || '') : '';
     const filhoKey = iFilhoKey >= 0 ? String(r[iFilhoKey] || '') : '';
-    if (!paiKey && !filhoKey) continue;          // linha vazia
-    if (paiKey.startsWith('⏱')) continue;        // linha de timestamp
+    if (!paiKey && !filhoKey) continue;
+    if (paiKey.startsWith('⏱')) continue;
     const o = {};
     hdr.forEach((h,j) => { o[h] = r[j] !== null && r[j] !== undefined ? r[j] : ''; });
     rows.push(o);
   }
-  // Conta incorretos para o label da topbar
   const shInc = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('⚠️ INCORRETOS');
   const nIncorretos = shInc && shInc.getLastRow() > 1 ? shInc.getLastRow() - 1 : 0;
-
-  // totalJira = todas as issues buscadas (lida da propriedade gravada pelo sync)
   const totalJiraStr = PropertiesService.getScriptProperties().getProperty('SYNC_TOTAL') || '';
   const totalJira = totalJiraStr ? parseInt(totalJiraStr, 10) : null;
 
@@ -123,7 +119,7 @@ const ABAS_PERMITIDAS_SET = new Set([
 function formatarPlanilha() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // ── Remove abas não permitidas automaticamente ────────────
+  // Remove abas não permitidas automaticamente
   ss.getSheets().forEach(function(sh) {
     const nome = sh.getName();
     if (!ABAS_PERMITIDAS_SET.has(nome) && ss.getSheets().length > 1) {
@@ -132,7 +128,7 @@ function formatarPlanilha() {
     }
   });
 
-  // ── Remove aba RAW legada (versão antiga) ─────────────────
+  // Remove aba RAW legada (versão antiga)
   try {
     const rawLegada = ss.getSheetByName('RAW');
     if (rawLegada) { ss.deleteSheet(rawLegada); Logger.log('Aba RAW legada removida.'); }
@@ -168,8 +164,7 @@ function formatarPlanilha() {
 function doGet(e) {
   const p = (e && e.parameter) || {};
 
-  // ── Modo JSONP — GitHub Pages usa <script> tag (sem CORS) ──
-  // ── Modo JSON  — fetch direto com ?fmt=json ─────────────
+  // Modo JSONP / JSON — GitHub Pages ou fetch direto
   if (p.callback || p.fmt === 'json') {
     let payload;
     if (p.acao === 'periodo') {
@@ -180,19 +175,18 @@ function doGet(e) {
     }
     const json = JSON.stringify(payload);
     if (p.callback) {
-      // JSONP — envolve em callback(...)
       return ContentService.createTextOutput(p.callback + '(' + json + ')')
         .setMimeType(ContentService.MimeType.JAVASCRIPT);
     }
     return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // ── Status do progresso ───────────────────────────────────
+  // Status do progresso
   if (p.action === 'status') {
     return ContentService.createTextOutput(JSON.stringify(getProgresso())).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // ── Modo HTML — Apps Script Web App clássico ──────────────
+  // Modo HTML — Apps Script Web App clássico (principal modo da pessoal)
   if (p.action === 'sync') sincronizarJira();
 
   let dadosR, periodoR;
@@ -206,14 +200,14 @@ function doGet(e) {
 
   const t = HtmlService.createTemplateFromFile('Painel');
   const sUrl = ScriptApp.getService().getUrl();
-  t.dadosB64      = Utilities.base64Encode(JSON.stringify(dadosR),        Utilities.Charset.UTF_8);
-  t.periodoB64    = Utilities.base64Encode(JSON.stringify(periodoR),      Utilities.Charset.UTF_8);
+  t.dadosB64      = Utilities.base64Encode(JSON.stringify(dadosR),          Utilities.Charset.UTF_8);
+  t.periodoB64    = Utilities.base64Encode(JSON.stringify(periodoR),        Utilities.Charset.UTF_8);
   t.incorretosB64 = Utilities.base64Encode(JSON.stringify(getIncorretos()), Utilities.Charset.UTF_8);
   t.serviceUrl    = sUrl;
   return t.evaluate().setTitle('Dashboard UL').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-// ── POST — exportar via fetch do GitHub Pages ────────────────
+// ── POST — exportar via fetch ────────────────────────────────
 function doPost(e) {
   try {
     const body   = JSON.parse(e.postData.contents);
@@ -223,5 +217,3 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ok:false,erro:String(err)})).setMimeType(ContentService.MimeType.JSON);
   }
 }
-
-

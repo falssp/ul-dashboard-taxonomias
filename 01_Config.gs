@@ -94,8 +94,6 @@ h1{font-size:18px;font-weight:700;color:#111827;margin-bottom:5px;letter-spacing
   <div class="pw"><div class="pb" id="pb"></div></div>
   <div class="pl" id="pl">Iniciando...</div>
 <script>
-// Mapeamento etapa → step visual
-// buscando → s1 | gravando → s2 | calculando → s3 | formatando → s4 | concluido → s5
 var MAP = {
   buscando:   {idx:0, p:15},
   gravando:   {idx:1, p:45},
@@ -103,7 +101,6 @@ var MAP = {
   formatando: {idx:3, p:88},
   concluido:  {idx:4, p:100}
 };
-var TOTAL_STEPS = 4; // steps visíveis no grid
 var ultima = '', iv;
 
 function setBar(p, l) {
@@ -128,7 +125,6 @@ function tick() {
     .withSuccessHandler(function(prog) {
       var et  = prog.etapa   || '';
       var det = prog.detalhe || '';
-      // Atualiza detalhe sempre em buscando/gravando (páginas mudam)
       if (et === ultima && et !== 'buscando' && et !== 'gravando') return;
       ultima = et;
       var c = MAP[et];
@@ -141,7 +137,6 @@ function tick() {
         var cb = document.getElementById('cb');
         cb.className = 'concluido-bar ok';
         document.getElementById('cbTxt').textContent = '✅ ' + (det || 'Sincronização concluída!');
-        // Mostra botão de fechar e avisa que precisa de OK
         document.getElementById('btnFecharSync').style.display = 'inline-block';
         document.getElementById('btnFecharSync').focus();
         return;
@@ -158,25 +153,21 @@ function tick() {
         document.getElementById('btnFecharSync').focus();
         return;
       }
-      // Marca steps anteriores como done, step atual como active
       for (var j = 1; j <= c.idx; j++) markDone(j);
       markActive(c.idx + 1, det);
       setBar(c.p, c.p + '% concluído');
     })
-    .withFailureHandler(function() { /* silencioso */ })
+    .withFailureHandler(function() {})
     .getProgresso();
 }
 
-// Sem timeout fixo — roda enquanto o popup estiver aberto
 tick();
 iv = setInterval(tick, 2000);
 </script></body></html>`;
 
 // ── Menu ──────────────────────────────────────────────────────
 function onOpen() {
-  // Remove abas extras silenciosamente ao abrir
   try { _limparAbasExtrasInterno(); } catch(e) {}
-  // Verifica token ≤ 3 dias para vencer — alert imediato ao abrir
   _verificarTokenUrgente();
   SpreadsheetApp.getUi()
     .createMenu('📋 Dashboard UL')
@@ -198,11 +189,6 @@ function onOpen() {
 }
 
 // ── Acionadores ───────────────────────────────────────────────
-/**
- * Apaga TODOS os acionadores do projeto e recria apenas o sincronizarJira a cada 4h.
- * Também limpa triggers órfãos de _sincronizarEtapa2 que ficaram pendentes.
- * Pode ser chamada pelo menu ou manualmente no editor.
- */
 function configurarAcionadores() {
   PropertiesService.getScriptProperties().setProperty('ACAO_STATUS', 'aguardando');
   PropertiesService.getScriptProperties().setProperty('ACAO_MSG', '');
@@ -226,20 +212,16 @@ function _executarConfigurarAcionadores() {
   }
 }
 
-// _agendarGatilho: usado internamente após salvar credenciais (sem UI)
 function _agendarGatilho() {
   _configurarAcionadoresInterno();
 }
 
-// Lógica pura de reconfigurar acionadores — sem popup, pode rodar em trigger
 function _configurarAcionadoresInterno() {
   ScriptApp.getProjectTriggers().forEach(t => {
     const fn = t.getHandlerFunction();
-    // Preserva triggers one-shot em andamento
     if (['sincronizarJira'].includes(fn) || fn.startsWith('_executar') || fn === '_sincronizarEtapa2' || fn === '_gravarRAWDoBusfer' || fn === '_buscarProximaPagina') return;
     ScriptApp.deleteTrigger(t);
   });
-  // Garante que sincronizarJira está agendado
   const jaExiste = ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'sincronizarJira' && t.getTriggerSource() === ScriptApp.TriggerSource.CLOCK);
   if (!jaExiste) ScriptApp.newTrigger('sincronizarJira').timeBased().everyHours(4).create();
   Logger.log('Acionadores reconfigurados: sincronizarJira a cada 4h.');
@@ -484,14 +466,12 @@ function fechar() { google.script.host.close(); }
 </script></body></html>`;
 
 function configurarCredenciais() {
-  // Limpa status anterior
   PropertiesService.getScriptProperties().deleteProperty('CRED_STATUS');
   PropertiesService.getScriptProperties().deleteProperty('CRED_MSG');
   const html = HtmlService.createHtmlOutput(SETUP_HTML).setWidth(480).setHeight(470);
   SpreadsheetApp.getUi().showModalDialog(html, '📋 Configurar Dashboard UL');
 }
 
-// Chamado pelo popup — salva credenciais temporárias e agenda execução assíncrona
 function agendarSalvarCredenciais(email, token, expira) {
   PropertiesService.getScriptProperties().setProperties({
     CRED_EMAIL_TEMP:  email,
@@ -503,16 +483,13 @@ function agendarSalvarCredenciais(email, token, expira) {
   ScriptApp.newTrigger('_executarSalvarCredenciais').timeBased().after(1000).create();
 }
 
-// Roda via trigger — fora do contexto do modal (sem barra "Script em execução")
 function _executarSalvarCredenciais() {
-  // Remove este trigger
   ScriptApp.getProjectTriggers().forEach(t => {
     if (t.getHandlerFunction() === '_executarSalvarCredenciais') ScriptApp.deleteTrigger(t);
   });
   const props = PropertiesService.getScriptProperties();
   const email = props.getProperty('CRED_EMAIL_TEMP') || '';
   const token = props.getProperty('CRED_TOKEN_TEMP') || '';
-  // Limpa temporários
   props.deleteProperty('CRED_EMAIL_TEMP');
   props.deleteProperty('CRED_TOKEN_TEMP');
 
@@ -525,13 +502,10 @@ function _executarSalvarCredenciais() {
     props.setProperties({ CRED_STATUS: 'erro', CRED_MSG: 'Conexão falhou: ' + teste.msg });
     return;
   }
-  // Salva credenciais definitivas
   PropertiesService.getUserProperties().setProperties({ JIRA_EMAIL: email, JIRA_API_TOKEN: token });
   inicializarDePara();
   _agendarGatilho();
   try { props.setProperty('WEBAPP_URL', ScriptApp.getService().getUrl()); } catch(e) {}
-  // Grava data de expiração do token (1 ano a partir de hoje)
-  // Grava data de expiração informada pelo usuário (ou hoje+365 como fallback)
   const expiraStr = props.getProperty('CRED_EXPIRA_TEMP') || '';
   props.deleteProperty('CRED_EXPIRA_TEMP');
   const expiraFinal = expiraStr || (() => {
@@ -545,11 +519,9 @@ function _executarSalvarCredenciais() {
     CRED_STATUS: 'ok',
     CRED_MSG: teste.total + ' issues no Jira. Token válido até ' + expiraFmt + '. Sincronização iniciada — abra o painel em ~10 minutos.'
   });
-  // Inicia sync completo
   ScriptApp.newTrigger('sincronizarCompleto').timeBased().after(2000).create();
 }
 
-// Polling do popup
 function getStatusCredenciais() {
   const props = PropertiesService.getScriptProperties();
   return {
@@ -559,8 +531,6 @@ function getStatusCredenciais() {
 }
 
 // ── Aviso de expiração do token ──────────────────────────────
-
-// Retorna dias restantes até o token vencer (ou null se não configurado)
 function _diasParaExpirar() {
   const exp = PropertiesService.getScriptProperties().getProperty('TOKEN_EXPIRA');
   if (!exp) return null;
@@ -569,7 +539,6 @@ function _diasParaExpirar() {
   return Math.round((vence - hoje) / 86400000);
 }
 
-// Chamado no onOpen — alert urgente se ≤ 3 dias
 function _verificarTokenUrgente() {
   try {
     const dias = _diasParaExpirar();
@@ -590,8 +559,6 @@ function _verificarTokenUrgente() {
   } catch(e) {}
 }
 
-// Chamado pelo sync — envia e-mail + define aviso para o painel
-// Roda dentro de sincronizarJira para não impactar o sync completo
 function verificarAvisoToken() {
   try {
     const dias = _diasParaExpirar();
@@ -600,10 +567,8 @@ function verificarAvisoToken() {
     const props = PropertiesService.getScriptProperties();
     const hoje  = new Date().toISOString().substring(0, 10);
 
-    // Aviso para o painel (sempre atualiza)
     props.setProperty('TOKEN_AVISO_DIAS', String(dias));
 
-    // E-mail — envia só uma vez por dia
     const ultimoEnvio = props.getProperty('TOKEN_AVISO_ENVIADO') || '';
     if (ultimoEnvio === hoje) return;
 
@@ -636,7 +601,6 @@ function verificarAvisoToken() {
   }
 }
 
-// Retorna aviso de token para o painel HTML via getDados
 function getAvisoToken() {
   const props = PropertiesService.getScriptProperties();
   const dias = props.getProperty('TOKEN_AVISO_DIAS');
@@ -647,14 +611,12 @@ function getAvisoToken() {
 }
 
 // ── Limpeza de abas desnecessárias ───────────────────────────
-// Abas permitidas — qualquer outra é removida automaticamente
 const ABAS_PERMITIDAS = [
   '🏠 INICIO', 'PAINEL', '📊 VISUAL', '📋 TABELA',
   'RAW_PAI', 'RAW_FILHO', '⚠️ INCORRETOS', 'DE_PARA', '_SYNC_BUFFER'
 ];
 
 function _limparAbasExtrasInterno() {
-  // Roda no onOpen e no fim do sync — sem UI, silencioso
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const permitidas = new Set([
     '🏠 INICIO','PAINEL','📊 VISUAL','📋 TABELA',
@@ -687,11 +649,9 @@ function _executarLimparAbas() {
     ss.getSheets().forEach(sh => {
       const nome = sh.getName();
       if (!ABAS_PERMITIDAS.includes(nome)) {
-        // Não remove se for a última aba
         if (ss.getSheets().length > 1) {
           ss.deleteSheet(sh);
           removidas.push(nome);
-          Logger.log('Aba removida: ' + nome);
         }
       }
     });
@@ -739,7 +699,6 @@ function _creds() {
 
 function _testarConexao(email, token) {
   const auth = Utilities.base64Encode(email + ':' + token);
-  // Primeiro valida credenciais via myself (leve, sem cuota de issues)
   const respMe = UrlFetchApp.fetch(
     JIRA_BASE + '/rest/api/3/myself',
     { method: 'GET', headers: { Authorization: 'Basic ' + auth, Accept: 'application/json' }, muteHttpExceptions: true }
@@ -751,11 +710,8 @@ function _testarConexao(email, token) {
                 'Erro HTTP ' + code;
     return { ok: false, msg: msg };
   }
-  // API v3 com cursor não retorna total na busca
-  // Usa SYNC_TOTAL gravado pelo último sync — ou testa acesso com 1 issue
   const syncTotal = PropertiesService.getScriptProperties().getProperty('SYNC_TOTAL');
   if (syncTotal) return { ok: true, total: syncTotal };
-  // Primeira vez — busca 1 issue só para confirmar acesso ao projeto
   const respSearch = UrlFetchApp.fetch(
     JIRA_BASE + '/rest/api/3/search/jql?jql=' + encodeURIComponent('project=' + PROJETO) + '&maxResults=1&fields=summary',
     { method: 'GET', headers: { Authorization: 'Basic ' + auth, Accept: 'application/json' }, muteHttpExceptions: true }
