@@ -98,7 +98,11 @@ function _cacheGet(key) {
 
 // ── Limpeza de triggers ───────────────────────────────────────
 function _limparTriggersBusca() {
-  const LIMPAR = ['_buscarProximaPagina','_gravarRAWDoBusfer','_sincronizarEtapa2','sincronizarCompleto'];
+  const LIMPAR = [
+    '_buscarProximaPagina','_gravarRAWDoBusfer',
+    '_sincronizarEtapa2','_etapa2GravarPainel','_etapa2GravarTabela','_etapa2Finalizar',
+    'sincronizarCompleto'
+  ];
   ScriptApp.getProjectTriggers().forEach(t => {
     const fn = t.getHandlerFunction();
     if (!LIMPAR.includes(fn)) return;
@@ -295,18 +299,18 @@ function _gravarRAWDoBusfer() {
 
   PropertiesService.getScriptProperties().setProperty(PROP_ULTIMA_SYNC, new Date().toISOString());
   _bufferDeletar(ss);
-  Logger.log('Buffer deletado. Agendando Etapa 2...');
-  _setProgresso('gravando', 'Calculando PAINEL e TABELA...');
-  ScriptApp.newTrigger('_sincronizarEtapa2').timeBased().after(2000).create();
+  Logger.log('RAW gravado. Agendando cálculo do PAINEL...');
+  _setProgresso('calculando', 'Calculando PAINEL...');
+  ScriptApp.newTrigger('_etapa2GravarPainel').timeBased().after(2000).create();
 }
 
-// ── ETAPA 2: PAINEL + TABELA + INICIO ────────────────────────
-function _sincronizarEtapa2() {
+// ── ETAPA 2a: PAINEL ─────────────────────────────────────────
+function _etapa2GravarPainel() {
   ScriptApp.getProjectTriggers().forEach(t => {
-    if (t.getHandlerFunction() === '_sincronizarEtapa2') ScriptApp.deleteTrigger(t);
+    if (t.getHandlerFunction() === '_etapa2GravarPainel') ScriptApp.deleteTrigger(t);
   });
-  Logger.log('Etapa 2: PAINEL + TABELA + INICIO...');
-  _setProgresso('gravando', 'Reconstruindo PAINEL...');
+  Logger.log('Etapa 2a: gravando PAINEL...');
+  _setProgresso('calculando', 'Calculando PAINEL...');
 
   const ss   = SpreadsheetApp.getActiveSpreadsheet();
   const rawP = ss.getSheetByName('RAW_PAI');
@@ -328,13 +332,37 @@ function _sincronizarEtapa2() {
     if (r[0]) filhos.push(_rowParaIssueFilho(r, hdrF));
   });
 
-  _setProgresso('calculando', 'Calculando PAINEL...');
   _gravarPainel(ss, Object.values(pais), filhos);
-
+  Logger.log('PAINEL gravado. Agendando TABELA...');
   _setProgresso('calculando', 'Gerando TABELA...');
+  ScriptApp.newTrigger('_etapa2GravarTabela').timeBased().after(2000).create();
+}
+
+// ── ETAPA 2b: TABELA ─────────────────────────────────────────
+function _etapa2GravarTabela() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === '_etapa2GravarTabela') ScriptApp.deleteTrigger(t);
+  });
+  Logger.log('Etapa 2b: gravando TABELA...');
+  _setProgresso('calculando', 'Gerando TABELA...');
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   try { _gravarTabela(ss); } catch(e) { Logger.log('TABELA: ' + e); }
 
+  Logger.log('TABELA gravada. Agendando finalização...');
+  _setProgresso('formatando', 'Finalizando...');
+  ScriptApp.newTrigger('_etapa2Finalizar').timeBased().after(2000).create();
+}
+
+// ── ETAPA 2c: INICIO + FORMATAÇÃO + CONCLUÍDO ────────────────
+function _etapa2Finalizar() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === '_etapa2Finalizar') ScriptApp.deleteTrigger(t);
+  });
+  Logger.log('Etapa 2c: INICIO + formatação...');
   _setProgresso('formatando', 'Atualizando manual (INICIO)...');
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   try { _criarAbaInicio(ss); } catch(e) { Logger.log('INICIO: ' + e); }
 
   _setProgresso('formatando', 'Formatando planilha...');
@@ -349,6 +377,16 @@ function _sincronizarEtapa2() {
   const total = PropertiesService.getScriptProperties().getProperty(PROP_SYNC_TOTAL) || '?';
   Logger.log('Sync concluído: ' + total + ' issues.');
   _setProgresso('concluido', total + ' issues sincronizadas com sucesso.');
+}
+
+// ── ETAPA 2 legada — mantida para compatibilidade ─────────────
+// Redireciona para o novo fluxo encadeado
+function _sincronizarEtapa2() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === '_sincronizarEtapa2') ScriptApp.deleteTrigger(t);
+  });
+  Logger.log('_sincronizarEtapa2 legada — redirecionando para _etapa2GravarPainel...');
+  ScriptApp.newTrigger('_etapa2GravarPainel').timeBased().after(1000).create();
 }
 
 // ── Separação de issues por tipo ──────────────────────────────

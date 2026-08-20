@@ -219,7 +219,7 @@ function _agendarGatilho() {
 function _configurarAcionadoresInterno() {
   ScriptApp.getProjectTriggers().forEach(t => {
     const fn = t.getHandlerFunction();
-    if (['sincronizarJira'].includes(fn) || fn.startsWith('_executar') || fn === '_sincronizarEtapa2' || fn === '_gravarRAWDoBusfer' || fn === '_buscarProximaPagina') return;
+    if (['sincronizarJira'].includes(fn) || fn.startsWith('_executar') || fn === '_sincronizarEtapa2' || fn === '_etapa2GravarPainel' || fn === '_etapa2GravarTabela' || fn === '_etapa2Finalizar' || fn === '_gravarRAWDoBusfer' || fn === '_buscarProximaPagina') return;
     ScriptApp.deleteTrigger(t);
   });
   const jaExiste = ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'sincronizarJira' && t.getTriggerSource() === ScriptApp.TriggerSource.CLOCK);
