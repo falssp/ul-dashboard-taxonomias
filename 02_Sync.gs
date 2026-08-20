@@ -125,6 +125,8 @@ function _limparEstado(ss) {
 function sincronizarCompleto() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   _limparEstado(ss);
+  // Apaga ULTIMA_SYNC para que o incremental de 1h não interfira durante o completo
+  PropertiesService.getScriptProperties().deleteProperty(PROP_ULTIMA_SYNC);
   const props = PropertiesService.getScriptProperties();
   props.setProperty(PROP_JQL_EXTRA, '');
   props.setProperty(PROP_PAGINA, '0');
@@ -378,9 +380,17 @@ function _etapa2Finalizar() {
   // Reordena abas na ordem correta
   try {
     const ORDEM = ['🏠 INICIO', 'PAINEL', '📋 TABELA', 'RAW_PAI', 'RAW_FILHO', 'DE_PARA', '⚠️ INCORRETOS'];
+    // moveActiveSheet não existe — usar moveTo com índice
     ORDEM.slice().reverse().forEach(function(nome) {
       const sh = ss.getSheetByName(nome);
-      if (sh) ss.setActiveSheet(sh).moveActiveSheet(1);
+      if (sh) ss.moveActiveSheet && ss.setActiveSheet(sh) && ss.moveActiveSheet(1);
+    });
+    // API correta: sh.activate() + ss.moveActiveSheet
+    ORDEM.slice().reverse().forEach(nome => {
+      const sh = ss.getSheetByName(nome);
+      if (!sh) return;
+      sh.activate();
+      ss.moveActiveSheet(1);
     });
   } catch(e) { Logger.log('Reordenação abas: ' + e); }
 

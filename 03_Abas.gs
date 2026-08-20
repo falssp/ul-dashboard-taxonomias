@@ -253,10 +253,9 @@ function _criarAbaInicio(ss) {
   const old = ss.getSheetByName('🏠 INICIO'); if (old) ss.deleteSheet(old);
   const sh = ss.insertSheet('🏠 INICIO');
   sh.setTabColor('#2E5BCD');
-  sh.hideGridlines();
 
   const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-  const syncTotal = PropertiesService.getScriptProperties().getProperty('SYNC_TOTAL') || '?';
+  const syncTotal   = PropertiesService.getScriptProperties().getProperty('SYNC_TOTAL')   || '?';
   const tokenExpira = PropertiesService.getScriptProperties().getProperty('TOKEN_EXPIRA') || '?';
 
   const linhas = [
@@ -269,20 +268,20 @@ function _criarAbaInicio(ss) {
     ['📌 O QUE É ESTE ARQUIVO'],
     ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
     [''],
-    ['Este arquivo sincroniza automaticamente os tickets do Jira (projeto UL) e organiza'],
-    ['os dados em abas estruturadas. O painel visual fica no link do Web App abaixo.'],
+    ['Este arquivo sincroniza automaticamente os tickets do Jira (projeto UL) e organiza os dados em abas.'],
+    ['O painel visual fica em: https://falssp.github.io/ul-dashboard-taxonomias/'],
     [''],
     ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
-    ['🗂 ABAS DA PLANILHA'],
+    ['🗂 ABAS'],
     ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
     [''],
-    ['🏠 INICIO        →  Este manual'],
-    ['PAINEL          →  Fonte de dados do painel HTML (pai × filho × veículo)'],
-    ['📋 TABELA       →  Cópia formatada do PAINEL para consulta direta'],
-    ['RAW_PAI         →  Todas as Tarefas do Jira (campanhas)'],
-    ['RAW_FILHO       →  Todas as Subtarefas do Jira (tickets de trabalho)'],
-    ['DE_PARA         →  Dicionário de normalização — edite aqui para mapear veículos e marcas'],
-    ['⚠️ INCORRETOS   →  Issues com tipo inválido — corrija no Jira'],
+    ['🏠 INICIO      →  Este manual'],
+    ['PAINEL        →  Fonte de dados do painel HTML'],
+    ['📋 TABELA     →  Cópia formatada do PAINEL para consulta direta'],
+    ['RAW_PAI       →  Todas as Tarefas do Jira (campanhas)'],
+    ['RAW_FILHO     →  Todas as Subtarefas do Jira (tickets de trabalho)'],
+    ['DE_PARA       →  Dicionário de normalização — edite para mapear veículos e marcas'],
+    ['⚠️ INCORRETOS →  Issues com tipo inválido — corrija no Jira'],
     [''],
     ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
     ['⚙️ MENU — 📋 Dashboard UL'],
@@ -291,65 +290,48 @@ function _criarAbaInicio(ss) {
     ['1. Configurar credenciais  →  E-mail Atlassian + API Token do Jira'],
     ['2. Testar conexão          →  Verifica se o token ainda funciona'],
     ['3. Sincronizar             →  Força sync completo imediato'],
-    ['4. Atualizar abas visuais  →  Regenera TABELA sem rebuscar o Jira'],
-    ['Abrir painel               →  Abre o painel HTML em nova aba'],
-    ['Avançado › Sync incremental         →  Força sync das últimas 1h'],
+    ['4. Atualizar TABELA        →  Regenera TABELA sem rebuscar o Jira'],
+    ['Abrir painel               →  Abre https://falssp.github.io/ul-dashboard-taxonomias/'],
+    ['Avançado › Sync incremental         →  Força sync da última 1h'],
     ['Avançado › Recriar DE_PARA          →  Restaura mapeamentos padrão'],
     ['Avançado › Reconfigurar acionadores →  Recria o trigger de 1h'],
     ['Avançado › Limpar abas extras       →  Remove abas fora do padrão'],
     [''],
     ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
-    ['🔄 SYNC AUTOMÁTICO'],
+    ['🔄 SYNC — roda automaticamente a cada 1h'],
     ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
     [''],
-    ['O sistema roda sincronizarJira() automaticamente a cada 1h.'],
-    ['Busca apenas issues atualizadas nas últimas 1h e faz merge com os dados existentes.'],
-    ['Sync completo (todas as issues) só acontece na primeira configuração ou quando forçado.'],
+    ['Incremental: busca só issues atualizadas na última hora e faz merge.'],
+    ['Completo: Menu → 3. Sincronizar (todas as issues, ~10 minutos).'],
     [''],
     ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
-    ['🗺 DE_PARA — como adicionar mapeamentos'],
+    ['🗺 DE_PARA — como mapear'],
     ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
     [''],
-    ['Abra a aba DE_PARA e adicione uma linha no formato:'],
-    ['  TIPO  |  TOKEN_JIRA       |  NOME_OFICIAL'],
-    ['  MARCA |  Dove Deos        |  Dove'],
-    ['  VEICULO | YT              |  YouTube'],
-    [''],
-    ['O sistema lê o título da issue e mapeia para o nome oficial.'],
+    ['Aba DE_PARA → nova linha:   TIPO | TOKEN_JIRA | NOME_OFICIAL'],
+    ['Exemplo:   VEICULO | YT | YouTube   ou   MARCA | Dove Deos | Dove'],
     ['Se aparecer "⚠️ Não mapeado" no painel, adicione o token aqui.'],
     [''],
     ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
-    ['🔑 TOKEN DO JIRA'],
+    ['🔑 TOKEN DO JIRA — válido até: ' + tokenExpira],
     ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
     [''],
-    ['Token atual válido até: ' + tokenExpira],
-    ['O sistema envia e-mail automático quando faltam 10 dias para vencer.'],
-    ['Para renovar: id.atlassian.com → Segurança → Tokens de API'],
-    ['Depois: Menu → 1. Configurar credenciais'],
-    [''],
-    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
-    ['⚠️ INCORRETOS — o que fazer'],
-    ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
-    [''],
-    ['Issues com tipo inválido (Epic, História, etc) ficam na aba ⚠️ INCORRETOS.'],
-    ['Elas não aparecem no painel. Para corrigir: abra o ticket no Jira e mude o tipo'],
-    ['para Tarefa (pai) ou Subtarefa (filho). No próximo sync ela some dos INCORRETOS.'],
+    ['E-mail automático quando faltam 10 dias para vencer.'],
+    ['Renovar: id.atlassian.com → Segurança → Tokens de API → Menu → 1. Configurar credenciais'],
     [''],
     ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
     ['📞 SUPORTE'],
     ['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'],
     [''],
     ['Repositório: https://github.com/falssp/ul-dashboard-taxonomias'],
-    ['Responsável técnico: StormX Data & Tech'],
+    ['Responsável: StormX Data & Tech · Projeto: Unilever BR · Grasp x StormX'],
     [''],
   ];
 
-  // Escreve tudo de uma vez
-  sh.getRange(1, 1, linhas.length, 1).setValues(linhas);
-
-  // Formatação em batch
   const nRows = linhas.length;
-  sh.getRange(1, 1, nRows, 1)
+  const range = sh.getRange(1, 1, nRows, 1);
+  range.setValues(linhas);
+  range
     .setFontFamily('Inter, Arial, sans-serif')
     .setFontSize(11)
     .setFontColor('#e8ecf4')
@@ -357,40 +339,22 @@ function _criarAbaInicio(ss) {
     .setVerticalAlignment('middle')
     .setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
 
-  // Título principal
   sh.getRange(1, 1).setFontSize(18).setFontWeight('bold').setFontColor('#ffffff');
-  sh.setRowHeight(1, 36);
-
-  // Subtítulo
   sh.getRange(2, 1).setFontSize(12).setFontColor('#6b7a9e');
-  sh.setRowHeight(2, 24);
-
-  // Linha de sync
   sh.getRange(4, 1).setFontSize(10).setFontColor('#4f7ef8').setFontStyle('italic');
 
-  // Separadores e títulos de seção
-  const separadores = [6, 8, 13, 15, 25, 27, 36, 38, 44, 46, 53, 55, 62, 64, 71, 73, 78, 80];
-  separadores.forEach(ln => {
-    const cell = sh.getRange(ln, 1);
-    const val = String(linhas[ln-1][0]);
-    if (val.startsWith('━')) {
-      cell.setFontColor('#2a3050').setFontSize(9);
-      sh.setRowHeight(ln, 8);
-    } else {
-      cell.setFontSize(12).setFontWeight('bold').setFontColor('#4f7ef8');
-      sh.setRowHeight(ln, 28);
-    }
+  const idxSep = [], idxTit = [];
+  linhas.forEach((l, i) => {
+    const v = String(l[0]);
+    if (v.startsWith('━')) idxSep.push(i + 1);
+    else if (v.match(/^[📌🗂⚙️🔄🗺🔑📞]/u)) idxTit.push(i + 1);
   });
-
-  // Linhas vazias mais compactas
-  for (let i = 1; i <= nRows; i++) {
-    if (String(linhas[i-1][0]).trim() === '') sh.setRowHeight(i, 10);
-  }
+  idxSep.forEach(ln => sh.getRange(ln, 1).setFontColor('#2a3050').setFontSize(9));
+  idxTit.forEach(ln => sh.getRange(ln, 1).setFontSize(12).setFontWeight('bold').setFontColor('#4f7ef8'));
 
   sh.setColumnWidth(1, 720);
   _trim(sh, nRows, 1);
 }
-
 // ── TABELA ────────────────────────────────────────────────────
 function _gravarTabela(ss) {
   const painel=ss.getSheetByName('PAINEL'); if(!painel) return;
