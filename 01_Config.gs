@@ -334,8 +334,7 @@ function abrirInstalador() {
 }
 
 function abrirPainel() {
-  const url = PropertiesService.getScriptProperties().getProperty('WEBAPP_URL');
-  if (!url) { SpreadsheetApp.getUi().alert('Painel não configurado.\nConfigure as credenciais primeiro.'); return; }
+  const url = 'https://falssp.github.io/ul-dashboard-taxonomias/';
   const html = HtmlService.createHtmlOutput(
     '<style>*{box-sizing:border-box;margin:0;padding:0;font-family:Inter,sans-serif;}' +
     'body{background:#0f1117;display:flex;align-items:center;justify-content:center;min-height:100vh;}' +

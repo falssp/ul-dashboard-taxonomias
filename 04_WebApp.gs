@@ -164,47 +164,25 @@ function formatarPlanilha() {
 function doGet(e) {
   const p = (e && e.parameter) || {};
 
-  // Modo JSONP / JSON — GitHub Pages ou fetch direto
-  if (p.callback || p.fmt === 'json') {
-    let payload;
-    if (p.acao === 'periodo') {
-      const dp = getDadosPeriodo(p.de||'', p.ate||'', p.campo||'updated');
-      payload  = { dados: dp, periodo: { de:p.de||'', ate:p.ate||'', campo:p.campo||'updated' }, incorretos: getIncorretos() };
-    } else {
-      payload  = { dados: getDados(), periodo: null, incorretos: getIncorretos() };
-    }
-    const json = JSON.stringify(payload);
-    if (p.callback) {
-      return ContentService.createTextOutput(p.callback + '(' + json + ')')
-        .setMimeType(ContentService.MimeType.JAVASCRIPT);
-    }
-    return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
-  }
-
   // Status do progresso
   if (p.action === 'status') {
     return ContentService.createTextOutput(JSON.stringify(getProgresso())).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Modo HTML — Apps Script Web App clássico (principal modo da pessoal)
-  if (p.action === 'sync') sincronizarJira();
-
-  let dadosR, periodoR;
+  // API de dados — JSONP (GitHub Pages) ou JSON (fetch direto)
+  let payload;
   if (p.acao === 'periodo') {
-    dadosR   = getDadosPeriodo(p.de||'', p.ate||'', p.campo||'updated');
-    periodoR = { de:p.de||'', ate:p.ate||'', campo:p.campo||'updated' };
+    const dp = getDadosPeriodo(p.de||'', p.ate||'', p.campo||'updated');
+    payload  = { dados: dp, periodo: { de:p.de||'', ate:p.ate||'', campo:p.campo||'updated' }, incorretos: getIncorretos() };
   } else {
-    dadosR   = getDados();
-    periodoR = null;
+    payload  = { dados: getDados(), periodo: null, incorretos: getIncorretos() };
   }
-
-  const t = HtmlService.createTemplateFromFile('Painel');
-  const sUrl = ScriptApp.getService().getUrl();
-  t.dadosB64      = Utilities.base64Encode(JSON.stringify(dadosR),          Utilities.Charset.UTF_8);
-  t.periodoB64    = Utilities.base64Encode(JSON.stringify(periodoR),        Utilities.Charset.UTF_8);
-  t.incorretosB64 = Utilities.base64Encode(JSON.stringify(getIncorretos()), Utilities.Charset.UTF_8);
-  t.serviceUrl    = sUrl;
-  return t.evaluate().setTitle('Dashboard UL').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  const json = JSON.stringify(payload);
+  if (p.callback) {
+    return ContentService.createTextOutput(p.callback + '(' + json + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
 }
 
 // ── POST — exportar via fetch ────────────────────────────────
