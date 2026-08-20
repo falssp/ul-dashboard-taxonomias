@@ -15,47 +15,46 @@ const POPUP_HTML = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{
-  width:580px;height:440px;overflow:hidden;
+  width:640px;height:520px;overflow:hidden;
   background:#fff;color:#111827;
   font-family:'Inter','Segoe UI',system-ui,sans-serif;
-  font-size:13px;line-height:1.5;
+  font-size:14px;line-height:1.5;
 }
-body{padding:24px 28px 20px;display:flex;flex-direction:column;}
-.logo{font-size:10px;font-weight:600;color:#6b7280;letter-spacing:.3px;margin-bottom:14px;flex-shrink:0;}
+body{padding:28px 32px 24px;display:flex;flex-direction:column;gap:0;}
+.logo{font-size:11px;font-weight:600;color:#6b7280;letter-spacing:.3px;margin-bottom:16px;}
 .logo strong{color:#374151;}
-h1{font-size:17px;font-weight:700;color:#111827;margin-bottom:3px;letter-spacing:-.3px;flex-shrink:0;}
-.sub{font-size:11px;color:#6b7280;margin-bottom:18px;flex-shrink:0;}
-.steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-bottom:10px;flex-shrink:0;}
-.step{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-radius:10px;background:#f9fafb;border:1.5px solid #e5e7eb;transition:border-color .25s,background .25s;}
+h1{font-size:19px;font-weight:700;color:#111827;margin-bottom:4px;letter-spacing:-.3px;}
+.sub{font-size:12px;color:#6b7280;margin-bottom:20px;line-height:1.5;}
+.steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-bottom:14px;}
+.step{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:10px;background:#f9fafb;border:1.5px solid #e5e7eb;transition:border-color .25s,background .25s;}
 .done.step{background:#f0fdf4;border-color:#86efac;}
 .active.step{background:#eff6ff;border-color:#93c5fd;}
-.si{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;border:2px solid #d1d5db;background:#f9fafb;color:#9ca3af;transition:all .25s;}
-.done .si{background:#dcfce7;border-color:#16a34a;color:#16a34a;}
+.si{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;border:2px solid #d1d5db;background:#f9fafb;color:#9ca3af;transition:all .25s;}
+.done .si{background:#dcfce7;border-color:#16a34a;color:#16a34a;font-size:15px;}
 .active .si{background:#eff6ff;border-color:#3b82f6;animation:pulse 1.4s infinite;}
 .active .si .spin{animation:spin .7s linear infinite;}
 .sb{flex:1;min-width:0;}
-.st{font-size:12px;font-weight:600;color:#9ca3af;transition:color .25s;white-space:nowrap;}
+.st{font-size:13px;font-weight:700;color:#9ca3af;transition:color .25s;}
 .done .st{color:#16a34a;}.active .st{color:#111827;}
-.sd{font-size:11px;color:#9ca3af;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sd{font-size:12px;color:#9ca3af;margin-top:3px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
 .active .sd{color:#4b5563;}
-.pw{margin:8px 0 3px;background:#f3f4f6;border-radius:99px;height:5px;overflow:hidden;flex-shrink:0;}
+.pw{background:#f3f4f6;border-radius:99px;height:6px;overflow:hidden;margin-bottom:4px;}
 .pb{height:100%;background:linear-gradient(90deg,#3b82f6,#8b5cf6);border-radius:99px;transition:width .6s ease;width:0%;}
-.pl{font-size:10px;color:#9ca3af;text-align:right;margin-bottom:8px;font-weight:500;flex-shrink:0;}
-.result{display:none;border-radius:10px;padding:14px 18px;text-align:center;flex-shrink:0;}
+.pl{font-size:11px;color:#9ca3af;text-align:right;margin-bottom:14px;font-weight:500;}
+.result{display:none;border-radius:12px;padding:16px 20px;text-align:center;}
 .result.ok{display:flex;flex-direction:column;align-items:center;background:#f0fdf4;border:1.5px solid #86efac;}
 .result.erro{display:flex;flex-direction:column;align-items:center;background:#fef2f2;border:1.5px solid #fca5a5;}
-.result-title{font-size:14px;font-weight:700;margin-bottom:4px;}
+.result-title{font-size:15px;font-weight:700;margin-bottom:6px;}
 .ok .result-title{color:#15803d;}.erro .result-title{color:#991b1b;}
-.result-detail{font-size:11px;color:#4b5563;margin-bottom:12px;line-height:1.5;max-width:100%;word-break:break-word;}
+.result-detail{font-size:12px;color:#4b5563;margin-bottom:14px;line-height:1.6;max-width:100%;word-break:break-word;}
 .erro .result-detail{color:#7f1d1d;}
-.btn-ok{background:#3b82f6;color:#fff;border:none;border-radius:7px;padding:8px 28px;font-size:12px;font-weight:700;cursor:pointer;}
+.btn-ok{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:9px 32px;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s;}
 .btn-ok:hover{background:#2563eb;}
 .btn-ok.erro{background:#ef4444;}
 .btn-ok.erro:hover{background:#dc2626;}
-.log{font-size:10px;color:#9ca3af;margin-top:6px;font-family:monospace;}
-.spin{display:inline-block;width:12px;height:12px;border:2px solid #3b82f6;border-top-color:transparent;border-radius:50%;}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid #3b82f6;border-top-color:transparent;border-radius:50%;}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.25)}50%{box-shadow:0 0 0 5px rgba(59,130,246,0)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.25)}50%{box-shadow:0 0 0 6px rgba(59,130,246,0)}}
 </style></head><body>
 <div class="logo">📋 <strong>[UL] Dashboard_Taxonomias</strong> &nbsp;·&nbsp; Unilever BR · Grasp x StormX</div>
 <h1>Sincronizando dados</h1>
@@ -63,19 +62,31 @@ h1{font-size:17px;font-weight:700;color:#111827;margin-bottom:3px;letter-spacing
 <div class="steps-grid">
   <div class="step active" id="s1">
     <div class="si"><div class="spin"></div></div>
-    <div class="sb"><div class="st">1 · Buscando no Jira</div><div class="sd" id="d1">Conectando...</div></div>
+    <div class="sb">
+      <div class="st">1 · Buscando no Jira</div>
+      <div class="sd" id="d1">Conectando...</div>
+    </div>
   </div>
   <div class="step" id="s2">
     <div class="si">2</div>
-    <div class="sb"><div class="st">2 · Gravando RAW</div><div class="sd" id="d2">Aguardando etapa 1...</div></div>
+    <div class="sb">
+      <div class="st">2 · Gravando RAW</div>
+      <div class="sd" id="d2">Aguardando etapa 1...</div>
+    </div>
   </div>
   <div class="step" id="s3">
     <div class="si">3</div>
-    <div class="sb"><div class="st">3 · Calculando PAINEL</div><div class="sd" id="d3">Aguardando etapa 2...</div></div>
+    <div class="sb">
+      <div class="st">3 · Calculando PAINEL</div>
+      <div class="sd" id="d3">Aguardando etapa 2...</div>
+    </div>
   </div>
   <div class="step" id="s4">
     <div class="si">4</div>
-    <div class="sb"><div class="st">4 · Finalizando</div><div class="sd" id="d4">Aguardando etapa 3...</div></div>
+    <div class="sb">
+      <div class="st">4 · Finalizando</div>
+      <div class="sd" id="d4">Aguardando etapa 3...</div>
+    </div>
   </div>
 </div>
 <div class="pw"><div class="pb" id="pb"></div></div>
@@ -132,7 +143,6 @@ function tick() {
       ultima = et;
       var c = MAP[et];
       if (!c) return;
-
       if (et === 'concluido') {
         for (var i = 1; i <= 4; i++) markDone(i);
         setBar(100, '100% — concluído');
@@ -148,16 +158,18 @@ function tick() {
       markActive(c.idx + 1, det);
       setBar(c.p, c.p + '% concluído');
     })
-    .withFailureHandler(function(e) {
+    .withFailureHandler(function() {
       erros++;
-      // Após 5 falhas consecutivas de comunicação, mostra erro
       if (erros >= 5) {
         showResult(false, '❌ Sem resposta do servidor',
-          'O Apps Script não está respondendo. Verifique as Execuções no editor e recarregue se necessário.');
+          'O Apps Script não está respondendo. Verifique as Execuções no editor.');
       }
     })
     .getProgresso();
 }
+
+// Evita pré-seleção do X do modal
+document.addEventListener('DOMContentLoaded', function() { document.body.focus(); });
 
 tick();
 iv = setInterval(tick, 2000);
@@ -327,7 +339,7 @@ function _executarRecriarDePara() {
 function abrirInstalador() {
   _setProgresso('aguardando', 'Iniciando em instantes...');
   ScriptApp.newTrigger('sincronizarCompleto').timeBased().after(2000).create();
-  const html = HtmlService.createHtmlOutput(POPUP_HTML).setWidth(580).setHeight(440);
+  const html = HtmlService.createHtmlOutput(POPUP_HTML).setWidth(640).setHeight(520);
   SpreadsheetApp.getUi().showModalDialog(html, '📋 Sincronizando Dashboard UL');
 }
 
