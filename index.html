@@ -21,8 +21,10 @@ function tempoRelativo(iso) {
   var d = new Date(iso);
   if (isNaN(d)) return null;
   var diff = Date.now() - d.getTime();
+  if (diff < 0) return null; // timestamp no futuro (clock skew) — não mostra
   var h = Math.floor(diff / 3600000);
   var min = Math.floor(diff / 60000);
+  if (min < 1) return 'agora';
   if (min < 60) return min + 'min atrás';
   if (h < 24) return h + 'h atrás';
   var dias = Math.floor(h / 24);
@@ -889,6 +891,7 @@ function renderizar() {
           var campMidia=gS(campRows[0],'CAMP. MÍDIA');
           var statusAdp=norm(gS(campRows[0],'STATUS ADP (PAI)'));
           var isSolo=campRows.length===1&&gS(campRows[0],'SUMMARY (FILHO)')==='(sem subtarefas)';
+          var paiKey=gS(campRows[0],'PAI_KEY');
           // Soma QTD TAX de todos os filhos (0 quando vazio)
           var somaTax = 0;
           var temTax = false;
@@ -902,7 +905,11 @@ function renderizar() {
           var taxLabel = temTax
             ? '<span style="margin-left:8px;font-size:10px;padding:1px 7px;border-radius:3px;background:#1a2a3a;color:#7ab8f5;border:1px solid #2a4a6a;font-weight:700;">Σ ' + somaTax + ' tax.</span>'
             : '';
+          var paiKeyLabel = paiKey
+            ? '<a href="https://storm-x.atlassian.net/browse/'+paiKey+'" target="_blank" class="ticket-link" style="margin-right:6px;">'+paiKey+'</a>'
+            : '';
           html+='<tr class="camp-sep-row"><td colspan="9">'
+            +paiKeyLabel
             +'<span style="color:'+cor+';font-size:9px;margin-right:5px;">◆</span>'
             +'<span class="camp-sep-name">'+camp+(isSolo?'<span class="solo-badge" style="margin-left:6px;">solo</span>':'')+'</span>'
             +taxLabel
@@ -1233,8 +1240,8 @@ function _init(){
           <span style="color:#4f7ef8;">■</span> <strong style="color:#e8ecf4;">Tickets de trabalho</strong> — subtarefas + tickets solo (sem filhos).<br>
           <span style="color:#e67e22;">■</span> <strong style="color:#e8ecf4;">Campanhas</strong> — tarefas pai que têm subtarefas. São agrupadores.<br>
           <span style="color:#e74c3c;">■</span> <strong style="color:#e8ecf4;">Incorretos</strong> — issues com tipo inválido. Visíveis no banner ⚠️.<br><br>
-          <code style="background:#141828;padding:2px 7px;border-radius:3px;color:#4f7ef8;font-size:11px;">Jira total = tickets + campanhas + incorretos</code><br>
-          <span style="font-size:11px;color:#6b7a9e;margin-top:6px;display:block;">Tickets com múltiplos veículos aparecem em mais de uma linha mas são contados uma vez só nos KPIs.</span>
+          <code style="background:#141828;padding:2px 7px;border-radius:3px;color:#4f7ef8;font-size:11px;">Jira total = filhos + pais agrupadores + solos + incorretos</code><br>
+          <span style="font-size:11px;color:#6b7a9e;margin-top:6px;display:block;">Pais agrupadores (campanhas com subtarefas) não são trabalho executável — não entram no total do painel. Tickets com múltiplos veículos aparecem em mais de uma linha mas são contados uma vez só nos KPIs.</span>
         </div>
       </div>
       <div style="background:#1e2333;border-radius:8px;padding:18px 20px;border-left:3px solid #a0aabf;">
