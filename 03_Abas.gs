@@ -168,14 +168,7 @@ function _gravarPainel(ss, pais, filhos) {
   const sh = ss.insertSheet('PAINEL');
   const dv = _carregarDePara('VEICULO');
 
-  // Filtra filhos atualizados nos últimos 12 meses
-  const corte = new Date();
-  corte.setFullYear(corte.getFullYear() - 1);
-  const corteISO = corte.toISOString().substring(0, 10);
-  filhos = filhos.filter(function(f) {
-    const upd = String((f.fields && f.fields.updated) || '').substring(0, 10);
-    return !upd || upd >= corteISO;
-  });
+  // Sem filtro de data — PAINEL contém histórico completo (igual ao Jira)
 
   const H = ['PAI_KEY','PAI_SUMMARY','BU','AGÊNCIA','MARCA (JIRA)','CAMP. MÍDIA','STATUS ADP (PAI)',
              'FILHO_KEY','SUMMARY (FILHO)','VEÍCULO','STATUS','RESPONSÁVEL','RELATOR',
