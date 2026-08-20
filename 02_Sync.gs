@@ -375,11 +375,14 @@ function _etapa2Finalizar() {
   _setProgresso('formatando', 'Formatando planilha...');
   try { formatarPlanilha(); } catch(e) { Logger.log('Formatação: ' + e); }
 
-  // Reordena abas: INICIO primeiro
+  // Reordena abas na ordem correta
   try {
-    const shInicio = ss.getSheetByName('🏠 INICIO');
-    if (shInicio) ss.setActiveSheet(shInicio).moveActiveSheet(1);
-  } catch(e) {}
+    const ORDEM = ['🏠 INICIO', 'PAINEL', '📋 TABELA', 'RAW_PAI', 'RAW_FILHO', 'DE_PARA', '⚠️ INCORRETOS'];
+    ORDEM.slice().reverse().forEach(function(nome) {
+      const sh = ss.getSheetByName(nome);
+      if (sh) ss.setActiveSheet(sh).moveActiveSheet(1);
+    });
+  } catch(e) { Logger.log('Reordenação abas: ' + e); }
 
   const total = PropertiesService.getScriptProperties().getProperty(PROP_SYNC_TOTAL) || '?';
   Logger.log('Sync concluído: ' + total + ' issues.');

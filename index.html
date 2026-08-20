@@ -889,10 +889,24 @@ function renderizar() {
           var campMidia=gS(campRows[0],'CAMP. MÍDIA');
           var statusAdp=norm(gS(campRows[0],'STATUS ADP (PAI)'));
           var isSolo=campRows.length===1&&gS(campRows[0],'SUMMARY (FILHO)')==='(sem subtarefas)';
+          // Soma QTD TAX de todos os filhos (0 quando vazio)
+          var somaTax = 0;
+          var temTax = false;
+          ticketsUnicos(campRows).forEach(function(r){
+            var v = r['QTD TAX.'];
+            if (v !== null && v !== undefined && v !== '') {
+              somaTax += parseFloat(v) || 0;
+              temTax = true;
+            }
+          });
+          var taxLabel = temTax
+            ? '<span style="margin-left:8px;font-size:10px;padding:1px 7px;border-radius:3px;background:#1a2a3a;color:#7ab8f5;border:1px solid #2a4a6a;font-weight:700;">Σ ' + somaTax + ' tax.</span>'
+            : '';
           html+='<tr class="camp-sep-row"><td colspan="9">'
             +'<span style="color:'+cor+';font-size:9px;margin-right:5px;">◆</span>'
             +'<span class="camp-sep-name">'+camp+(isSolo?'<span class="solo-badge" style="margin-left:6px;">solo</span>':'')+'</span>'
-            +(campMidia?'<span class="camp-tag" style="margin-left:8px;font-size:10px;padding:1px 6px;border-radius:3px;background:var(--surf2);color:var(--txt2);border:1px solid var(--brd);">📺 '+campMidia+'</span>':'')
+            +taxLabel
+            +(campMidia?'<span class="camp-tag" style="margin-left:6px;font-size:10px;padding:1px 6px;border-radius:3px;background:var(--surf2);color:var(--txt2);border:1px solid var(--brd);">📺 '+campMidia+'</span>':'')
             +(statusAdp&&statusAdp!=='Não Identificado'?'<span class="camp-tag" style="margin-left:4px;font-size:10px;padding:1px 6px;border-radius:3px;background:var(--surf2);color:var(--txt2);border:1px solid var(--brd);">'+statusAdp+'</span>':'')
             +'<span style="float:right;color:var(--mut);font-size:10px;">'+tickets(totCamp)+'</span>'
             +'</td></tr>';
@@ -1147,7 +1161,11 @@ function _init(){
     var rel   = tempoRelativo(dados.sync);
     var hora  = ('0'+dSync.getHours()).slice(-2) + ':' + ('0'+dSync.getMinutes()).slice(-2);
     var dia   = ('0'+dSync.getDate()).slice(-2) + '/' + ('0'+(dSync.getMonth()+1)).slice(-2);
-    syncLabel.textContent = rel ? ('Sync ' + rel) : ('Sync ' + dia + ' às ' + hora);
+    var agora = new Date();
+    var mesmoDia = dSync.toDateString() === agora.toDateString();
+    syncLabel.textContent = rel
+      ? ('Sync · ' + rel)
+      : (mesmoDia ? 'Sync · hoje ' + hora : 'Sync · ' + dia + ' ' + hora);
     syncLabel.title = 'Último sync: ' + dSync.toLocaleString('pt-BR');
   } else {
     syncLabel.textContent = 'Sync —';
