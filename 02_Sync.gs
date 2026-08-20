@@ -272,6 +272,7 @@ function _gravarRAWDoBusfer() {
     _setProgresso('erro', 'Buffer vazio — execute a sincronização novamente.');
     return;
   }
+  _setProgresso('gravando', 'Separando ' + issues.length + ' issues em pais, filhos e incorretos...');
   Logger.log('Buffer: ' + issues.length + ' issues — separando e gravando RAW...');
   const jqlExtra    = PropertiesService.getScriptProperties().getProperty(PROP_JQL_EXTRA) || '';
   const incremental = jqlExtra !== '';
@@ -288,13 +289,13 @@ function _gravarRAWDoBusfer() {
     if (pk && !pais[pk]) pais[pk] = _stubPai(pk, (f.fields.parent.fields || {}).summary || pk);
   });
 
-  _setProgresso('gravando', 'Gravando RAW_PAI...');
+  _setProgresso('gravando', 'Gravando ' + nPais + ' tarefas pai (RAW_PAI)...');
   _gravarRAWPai(ss, Object.values(pais));
 
-  _setProgresso('gravando', 'Gravando RAW_FILHO...');
+  _setProgresso('gravando', 'Gravando ' + nFilhos + ' subtarefas (RAW_FILHO)...');
   _gravarRAWFilho(ss, filhos);
 
-  _setProgresso('gravando', 'Gravando incorretos...');
+  _setProgresso('gravando', nIncorretos > 0 ? 'Gravando ' + nIncorretos + ' issues com tipo incorreto...' : 'Sem issues com tipo incorreto.');
   _gravarIncorretos(ss, incorretos);
 
   PropertiesService.getScriptProperties().setProperty(PROP_ULTIMA_SYNC, new Date().toISOString());
@@ -332,6 +333,9 @@ function _etapa2GravarPainel() {
     if (r[0]) filhos.push(_rowParaIssueFilho(r, hdrF));
   });
 
+  const nPaisE2 = Object.keys(pais).length;
+  const nFilhosE2 = filhos.length;
+  _setProgresso('calculando', 'Calculando PAINEL com ' + nPaisE2 + ' campanhas e ' + nFilhosE2 + ' subtarefas...');
   _gravarPainel(ss, Object.values(pais), filhos);
   Logger.log('PAINEL gravado. Agendando TABELA...');
   _setProgresso('calculando', 'Gerando TABELA...');
@@ -347,6 +351,9 @@ function _etapa2GravarTabela() {
   _setProgresso('calculando', 'Gerando TABELA...');
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const painel = ss.getSheetByName('PAINEL');
+  const nLinhas = painel ? Math.max(0, painel.getLastRow() - 1) : 0;
+  _setProgresso('calculando', 'Gerando TABELA com ' + nLinhas + ' linhas...');
   try { _gravarTabela(ss); } catch(e) { Logger.log('TABELA: ' + e); }
 
   Logger.log('TABELA gravada. Agendando finalização...');
@@ -376,7 +383,7 @@ function _etapa2Finalizar() {
 
   const total = PropertiesService.getScriptProperties().getProperty(PROP_SYNC_TOTAL) || '?';
   Logger.log('Sync concluído: ' + total + ' issues.');
-  _setProgresso('concluido', total + ' issues sincronizadas com sucesso.');
+  _setProgresso('concluido', total + ' issues sincronizadas · PAINEL e TABELA atualizados.');
 }
 
 // ── ETAPA 2 legada — mantida para compatibilidade ─────────────

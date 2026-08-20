@@ -14,94 +14,86 @@ const POPUP_HTML = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
-body{
+html,body{
+  width:580px;height:440px;overflow:hidden;
   background:#fff;color:#111827;
   font-family:'Inter','Segoe UI',system-ui,sans-serif;
-  font-size:14px;line-height:1.5;padding:28px 32px 24px;
+  font-size:13px;line-height:1.5;
 }
-.logo{font-size:11px;font-weight:600;color:#6b7280;letter-spacing:.3px;margin-bottom:20px;}
+body{padding:24px 28px 20px;display:flex;flex-direction:column;}
+.logo{font-size:10px;font-weight:600;color:#6b7280;letter-spacing:.3px;margin-bottom:14px;flex-shrink:0;}
 .logo strong{color:#374151;}
-h1{font-size:18px;font-weight:700;color:#111827;margin-bottom:5px;letter-spacing:-.3px;}
-.sub{font-size:13px;color:#6b7280;margin-bottom:24px;line-height:1.6;}
-.steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:12px;}
-.step{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-radius:10px;background:#f9fafb;border:1.5px solid #e5e7eb;position:relative;transition:border-color .25s,background .25s;}
+h1{font-size:17px;font-weight:700;color:#111827;margin-bottom:3px;letter-spacing:-.3px;flex-shrink:0;}
+.sub{font-size:11px;color:#6b7280;margin-bottom:18px;flex-shrink:0;}
+.steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-bottom:10px;flex-shrink:0;}
+.step{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-radius:10px;background:#f9fafb;border:1.5px solid #e5e7eb;transition:border-color .25s,background .25s;}
 .done.step{background:#f0fdf4;border-color:#86efac;}
 .active.step{background:#eff6ff;border-color:#93c5fd;}
-.concluido-bar{display:none;margin-top:4px;border-radius:10px;padding:14px 20px;text-align:center;font-weight:700;font-size:14px;}
-.concluido-bar.ok{display:block;background:#f0fdf4;border:1.5px solid #86efac;color:#15803d;}
-.concluido-bar.erro{display:block;background:#fef2f2;border:1.5px solid #fca5a5;color:#991b1b;}
-.concluido-bar .motivo{font-size:12px;font-weight:400;margin-top:4px;opacity:.8;}
-.btn-fechar-sync.erro{background:#ef4444;}
-.si{
-  width:32px;height:32px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:13px;font-weight:700;flex-shrink:0;
-  border:2px solid #d1d5db;background:#f9fafb;color:#9ca3af;
-  z-index:1;position:relative;transition:all .25s;
-}
+.si{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;border:2px solid #d1d5db;background:#f9fafb;color:#9ca3af;transition:all .25s;}
 .done .si{background:#dcfce7;border-color:#16a34a;color:#16a34a;}
 .active .si{background:#eff6ff;border-color:#3b82f6;animation:pulse 1.4s infinite;}
-.sb{flex:1;padding-top:5px;}
-.st{font-size:14px;font-weight:600;color:#9ca3af;transition:color .25s;}
-.done .st{color:#16a34a;}.active .st{color:#111827;}
-.sd{font-size:12px;color:#9ca3af;margin-top:2px;min-height:16px;}
-.active .sd{color:#4b5563;}
-.pw{margin:22px 0 5px;background:#f3f4f6;border-radius:99px;height:6px;overflow:hidden;}
-.pb{height:100%;background:linear-gradient(90deg,#3b82f6,#8b5cf6);border-radius:99px;transition:width .5s ease;width:0%;}
-.pl{font-size:11px;color:#9ca3af;text-align:right;margin-top:4px;font-weight:500;}
-.done-banner{display:none;margin-top:20px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px 18px;text-align:center;}
-.done-banner h2{color:#15803d;font-size:15px;font-weight:700;margin-bottom:5px;}
-.done-banner p{color:#4b7a5a;font-size:13px;margin-bottom:14px;}
-.btn-ok{background:#3b82f6;color:#fff;border:none;border-radius:7px;padding:9px 24px;font-size:13px;font-weight:700;cursor:pointer;}
-.btn-ok:hover{background:#2563eb;}
-.wait-banner{display:none;margin-top:20px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:14px 18px;text-align:center;}
-.wait-banner h2{color:#92400e;font-size:14px;font-weight:700;margin-bottom:5px;}
-.wait-banner p{color:#78350f;font-size:12px;line-height:1.7;}
-.err-banner{display:none;margin-top:20px;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:14px 18px;text-align:center;}
-.err-banner h2{color:#991b1b;font-size:14px;font-weight:700;margin-bottom:5px;}
-.err-banner p{color:#7f1d1d;font-size:12px;}
-.spin{display:inline-block;width:13px;height:13px;border:2px solid #3b82f6;border-top-color:transparent;border-radius:50%;}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.25)}50%{box-shadow:0 0 0 6px rgba(59,130,246,0)}}
 .active .si .spin{animation:spin .7s linear infinite;}
+.sb{flex:1;min-width:0;}
+.st{font-size:12px;font-weight:600;color:#9ca3af;transition:color .25s;white-space:nowrap;}
+.done .st{color:#16a34a;}.active .st{color:#111827;}
+.sd{font-size:11px;color:#9ca3af;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.active .sd{color:#4b5563;}
+.pw{margin:8px 0 3px;background:#f3f4f6;border-radius:99px;height:5px;overflow:hidden;flex-shrink:0;}
+.pb{height:100%;background:linear-gradient(90deg,#3b82f6,#8b5cf6);border-radius:99px;transition:width .6s ease;width:0%;}
+.pl{font-size:10px;color:#9ca3af;text-align:right;margin-bottom:8px;font-weight:500;flex-shrink:0;}
+.result{display:none;border-radius:10px;padding:14px 18px;text-align:center;flex-shrink:0;}
+.result.ok{display:flex;flex-direction:column;align-items:center;background:#f0fdf4;border:1.5px solid #86efac;}
+.result.erro{display:flex;flex-direction:column;align-items:center;background:#fef2f2;border:1.5px solid #fca5a5;}
+.result-title{font-size:14px;font-weight:700;margin-bottom:4px;}
+.ok .result-title{color:#15803d;}.erro .result-title{color:#991b1b;}
+.result-detail{font-size:11px;color:#4b5563;margin-bottom:12px;line-height:1.5;max-width:100%;word-break:break-word;}
+.erro .result-detail{color:#7f1d1d;}
+.btn-ok{background:#3b82f6;color:#fff;border:none;border-radius:7px;padding:8px 28px;font-size:12px;font-weight:700;cursor:pointer;}
+.btn-ok:hover{background:#2563eb;}
+.btn-ok.erro{background:#ef4444;}
+.btn-ok.erro:hover{background:#dc2626;}
+.log{font-size:10px;color:#9ca3af;margin-top:6px;font-family:monospace;}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid #3b82f6;border-top-color:transparent;border-radius:50%;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.25)}50%{box-shadow:0 0 0 5px rgba(59,130,246,0)}}
 </style></head><body>
-  <div class="logo">📋 <strong>[UL] Dashboard_Taxonomias</strong> &nbsp;·&nbsp; Unilever BR · Grasp x StormX</div>
-  <h1>Sincronizando dados</h1>
-  <p class="sub">Execuções encadeadas — sem risco de timeout. Pode fechar a qualquer momento.</p>
-  <div class="steps-grid">
-    <div class="step active" id="s1">
-      <div class="si"><div class="spin"></div></div>
-      <div class="sb"><div class="st">Buscando no Jira</div><div class="sd" id="d1">Conectando...</div></div>
-    </div>
-    <div class="step" id="s2">
-      <div class="si">2</div>
-      <div class="sb"><div class="st">Gravando RAW</div><div class="sd" id="d2">RAW_PAI · RAW_FILHO · INCORRETOS</div></div>
-    </div>
-    <div class="step" id="s3">
-      <div class="si">3</div>
-      <div class="sb"><div class="st">Calculando PAINEL</div><div class="sd" id="d3">PAINEL · TABELA</div></div>
-    </div>
-    <div class="step" id="s4">
-      <div class="si">4</div>
-      <div class="sb"><div class="st">Formatando</div><div class="sd" id="d4">Larguras · Filtros · Cores</div></div>
-    </div>
+<div class="logo">📋 <strong>[UL] Dashboard_Taxonomias</strong> &nbsp;·&nbsp; Unilever BR · Grasp x StormX</div>
+<h1>Sincronizando dados</h1>
+<p class="sub">Execuções encadeadas — cada etapa roda no próprio contexto, sem risco de timeout.</p>
+<div class="steps-grid">
+  <div class="step active" id="s1">
+    <div class="si"><div class="spin"></div></div>
+    <div class="sb"><div class="st">1 · Buscando no Jira</div><div class="sd" id="d1">Conectando...</div></div>
   </div>
-  <div class="concluido-bar" id="cb">
-    <span id="cbTxt">—</span>
-    <div class="motivo" id="cbMotivo"></div>
-    <button class="btn-fechar-sync" id="btnFecharSync" style="display:none;margin-top:10px;background:#3b82f6;color:#fff;border:none;border-radius:7px;padding:8px 24px;font-size:13px;font-weight:700;cursor:pointer;" onclick="google.script.host.close()">OK — Fechar</button>
+  <div class="step" id="s2">
+    <div class="si">2</div>
+    <div class="sb"><div class="st">2 · Gravando RAW</div><div class="sd" id="d2">Aguardando etapa 1...</div></div>
   </div>
-  <div class="pw"><div class="pb" id="pb"></div></div>
-  <div class="pl" id="pl">Iniciando...</div>
+  <div class="step" id="s3">
+    <div class="si">3</div>
+    <div class="sb"><div class="st">3 · Calculando PAINEL</div><div class="sd" id="d3">Aguardando etapa 2...</div></div>
+  </div>
+  <div class="step" id="s4">
+    <div class="si">4</div>
+    <div class="sb"><div class="st">4 · Finalizando</div><div class="sd" id="d4">Aguardando etapa 3...</div></div>
+  </div>
+</div>
+<div class="pw"><div class="pb" id="pb"></div></div>
+<div class="pl" id="pl">Iniciando...</div>
+<div class="result" id="result">
+  <div class="result-title" id="rTitulo">—</div>
+  <div class="result-detail" id="rDetalhe"></div>
+  <button class="btn-ok" id="btnOk" onclick="google.script.host.close()">OK — Fechar</button>
+</div>
 <script>
 var MAP = {
-  buscando:   {idx:0, p:15},
-  gravando:   {idx:1, p:45},
-  calculando: {idx:2, p:70},
-  formatando: {idx:3, p:88},
+  buscando:   {idx:0, p:12},
+  gravando:   {idx:1, p:42},
+  calculando: {idx:2, p:72},
+  formatando: {idx:3, p:90},
   concluido:  {idx:4, p:100}
 };
-var ultima = '', iv;
+var ultima = '', iv, erros = 0;
 
 function setBar(p, l) {
   document.getElementById('pb').style.width = p + '%';
@@ -119,45 +111,51 @@ function markActive(n, det) {
   var d = document.getElementById('d' + n);
   if (d && det) d.textContent = det;
 }
+function showResult(ok, titulo, detalhe) {
+  clearInterval(iv);
+  var r = document.getElementById('result');
+  r.className = 'result ' + (ok ? 'ok' : 'erro');
+  document.getElementById('rTitulo').textContent = titulo;
+  document.getElementById('rDetalhe').textContent = detalhe || '';
+  var btn = document.getElementById('btnOk');
+  if (!ok) btn.className = 'btn-ok erro';
+  btn.focus();
+}
 
 function tick() {
   google.script.run
     .withSuccessHandler(function(prog) {
+      erros = 0;
       var et  = prog.etapa   || '';
       var det = prog.detalhe || '';
-      if (et === ultima && et !== 'buscando' && et !== 'gravando') return;
+      if (et === ultima && et !== 'buscando' && et !== 'gravando' && et !== 'calculando' && et !== 'formatando') return;
       ultima = et;
       var c = MAP[et];
       if (!c) return;
 
       if (et === 'concluido') {
-        clearInterval(iv);
         for (var i = 1; i <= 4; i++) markDone(i);
-        setBar(100, '100%');
-        var cb = document.getElementById('cb');
-        cb.className = 'concluido-bar ok';
-        document.getElementById('cbTxt').textContent = '✅ ' + (det || 'Sincronização concluída!');
-        document.getElementById('btnFecharSync').style.display = 'inline-block';
-        document.getElementById('btnFecharSync').focus();
+        setBar(100, '100% — concluído');
+        showResult(true, '✅ Sincronização concluída!', det);
         return;
       }
       if (et === 'erro') {
-        clearInterval(iv);
         setBar(100, '');
-        var cb = document.getElementById('cb');
-        cb.className = 'concluido-bar erro';
-        document.getElementById('cbTxt').textContent = '⚠️ Erro na sincronização';
-        document.getElementById('cbMotivo').textContent = det || 'Verifique o log no Apps Script.';
-        document.getElementById('btnFecharSync').style.display = 'inline-block';
-        document.getElementById('btnFecharSync').className = 'btn-fechar-sync erro';
-        document.getElementById('btnFecharSync').focus();
+        showResult(false, '❌ Erro na sincronização', det || 'Verifique o log no Apps Script (Execuções) para mais detalhes.');
         return;
       }
       for (var j = 1; j <= c.idx; j++) markDone(j);
       markActive(c.idx + 1, det);
       setBar(c.p, c.p + '% concluído');
     })
-    .withFailureHandler(function() {})
+    .withFailureHandler(function(e) {
+      erros++;
+      // Após 5 falhas consecutivas de comunicação, mostra erro
+      if (erros >= 5) {
+        showResult(false, '❌ Sem resposta do servidor',
+          'O Apps Script não está respondendo. Verifique as Execuções no editor e recarregue se necessário.');
+      }
+    })
     .getProgresso();
 }
 
@@ -329,7 +327,7 @@ function _executarRecriarDePara() {
 function abrirInstalador() {
   _setProgresso('aguardando', 'Iniciando em instantes...');
   ScriptApp.newTrigger('sincronizarCompleto').timeBased().after(2000).create();
-  const html = HtmlService.createHtmlOutput(POPUP_HTML).setWidth(620).setHeight(460);
+  const html = HtmlService.createHtmlOutput(POPUP_HTML).setWidth(580).setHeight(440);
   SpreadsheetApp.getUi().showModalDialog(html, '📋 Sincronizando Dashboard UL');
 }
 
