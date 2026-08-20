@@ -90,7 +90,7 @@ input[type=date]{color-scheme:dark;}
 .date-hint{font-size:10px;color:var(--mut);font-style:italic;}
 .btn-rebuscar{background:#1a3a52;border:1px solid var(--acc);color:var(--acc);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;}
 .btn-rebuscar:hover{background:var(--acc);color:#fff;}
-.summary-bar{padding:10px 20px;display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
+.summary-bar{padding:10px 20px;display:grid;grid-template-columns:repeat(10,1fr);gap:8px;}
 .kpi{background:var(--surf);border:1px solid var(--brd);border-radius:var(--radius);padding:12px 16px;cursor:pointer;transition:border-color .2s,background .2s;user-select:none;}
 .kpi:hover{border-color:var(--acc);background:var(--surf2);}
 .kpi.active{border-color:var(--acc);background:#1a2240;box-shadow:0 0 0 2px rgba(79,126,248,.25);}
@@ -810,11 +810,27 @@ function renderKPIs(rows) {
   var bus  = new Set(rows.map(function(r){ return norm(gS(r,'BU')); }).filter(Boolean)).size;
   var camp = new Set(rows.map(function(r){ return gS(r,'PAI_SUMMARY'); }).filter(Boolean)).size;
 
+  // Pais = campanhas únicas com filhos (não solos)
+  var paiKeys = new Set();
+  var nFilhos = 0;
+  unicos.forEach(function(r) {
+    var fk = gS(r,'FILHO_KEY');
+    if (fk) {
+      nFilhos++;
+      paiKeys.add(gS(r,'PAI_KEY'));
+    }
+  });
+  var nPais = paiKeys.size;
+
   document.getElementById('kpiBar').innerHTML =
+    kpiInfo(nPais,   'Pais') +
+    kpiInfo(nFilhos, 'Filhos') +
     kpiBtn('todos',    tot,       'Total tickets', '') +
+    '<div class="kpi no-action" style="border-left:1px solid var(--brd);"></div>' +
     kpiBtn('concluido', pct+'%', 'Concluídos',    'green') +
     kpiBtn('qa',       qa,        'Em QA',         'yellow') +
     kpiBtn('pendente', pend,      'Pendentes',     'orange') +
+    '<div class="kpi no-action" style="border-left:1px solid var(--brd);"></div>' +
     kpiInfo(bus,  'BUs') +
     kpiInfo(camp, 'Campanhas');
 
