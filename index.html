@@ -176,22 +176,33 @@ tr:hover td{background:#191d2e;}
 .export-link:hover{text-decoration:underline;}
 .export-err{background:#3a1a1a;border-color:#e74c3c;}
 .export-err p{color:#f09595;}
-.inc-section{margin:0 20px 16px;background:#1e1a2a;border:1px solid #5a3050;border-radius:10px;overflow:hidden;}
-.inc-header{padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;}
-.inc-header:hover{background:#261e35;}
-.inc-title{font-size:13px;font-weight:700;color:#c89bff;}
-.inc-badge{background:#7c3aed;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;}
-.inc-sub{font-size:11px;color:#a080c0;margin-left:auto;}
-.inc-body{display:none;border-top:1px solid #5a3050;}
-.inc-body.show{display:block;}
-.inc-table{width:100%;border-collapse:collapse;font-size:11px;}
-.inc-table th{background:#1a1228;color:#a080c0;font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.3px;padding:7px 12px;text-align:left;border-bottom:1px solid #5a3050;}
-.inc-table td{padding:7px 12px;border-bottom:1px solid #2a1e3a;color:var(--txt2);vertical-align:middle;}
-.inc-table tr:last-child td{border-bottom:none;}
-.inc-table tr:hover td{background:#261e35;}
-.tag-tipo{font-size:10px;padding:2px 7px;border-radius:3px;font-weight:600;background:#3a1a4a;color:#c89bff;border:1px solid #7c3aed;}
-.inc-jira-link{color:var(--acc);text-decoration:none;font-size:10px;font-weight:700;background:#1a2333;border:1px solid var(--brd);border-radius:3px;padding:1px 5px;}
-.inc-jira-link:hover{background:var(--acc);color:#fff;}
+.inc-bloco{margin-bottom:8px;border-radius:10px;overflow:hidden;border:1px solid #5a2030;}
+.inc-bloco-header{background:#1e0f18;padding:9px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;}
+.inc-bloco-header:hover{background:#261520;}
+.inc-tipo-badge{background:#7c1d3a;color:#f9a8c0;font-size:11px;font-weight:700;padding:2px 9px;border-radius:5px;}
+.inc-bloco-instrucao{font-size:11px;color:#c08090;flex:1;margin-left:4px;}
+.inc-bloco-count{font-size:11px;color:#f9a8c0;font-weight:700;margin-left:auto;}
+.inc-bloco-arr{color:#c08090;font-size:11px;transition:transform .2s;margin-left:6px;}
+.inc-bloco-body{display:none;border-top:1px solid #5a2030;background:#160b12;}
+.inc-bloco-body.show{display:block;}
+.inc-row{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #2a1020;font-size:12px;}
+.inc-row:last-child{border-bottom:none;}
+.inc-row:hover{background:#1e0f18;}
+.inc-key{color:#4f7ef8;font-weight:700;font-size:11px;background:#1a2333;border:1px solid #2a3050;border-radius:3px;padding:1px 6px;text-decoration:none;flex-shrink:0;}
+.inc-key:hover{background:#4f7ef8;color:#fff;}
+.inc-summary{color:#e8ecf4;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.inc-status{font-size:10px;color:#9ca3af;flex-shrink:0;}
+.inc-resp{font-size:10px;color:#6b7280;flex-shrink:0;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.inc-atu{font-size:10px;color:#6b7280;flex-shrink:0;white-space:nowrap;}
+.inc-corrigir{color:#f9a8c0;font-size:10px;font-weight:700;text-decoration:none;background:#3a0020;border:1px solid #7c1d3a;border-radius:3px;padding:2px 7px;flex-shrink:0;}
+.inc-corrigir:hover{background:#7c1d3a;color:#fff;}
+.inc-banner{background:#1e0f18;border:1px solid #7c1d3a;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.inc-banner-icon{font-size:20px;flex-shrink:0;}
+.inc-banner-txt{flex:1;}
+.inc-banner-title{font-size:13px;font-weight:700;color:#f9a8c0;margin-bottom:2px;}
+.inc-banner-sub{font-size:11px;color:#c08090;}
+.inc-banner-toggle{background:#3a0020;border:1px solid #7c1d3a;color:#f9a8c0;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;}
+.inc-banner-toggle:hover{background:#7c1d3a;}
 </style>
 </head>
 <body>
@@ -359,21 +370,9 @@ tr:hover td{background:#191d2e;}
 
 <div class="summary-bar" id="kpiBar"></div>
 
-<div class="inc-section" id="incSection" style="display:none">
-  <div class="inc-header" onclick="toggleIncorretos()">
-    <span class="inc-title">⚠️ Issues com tipo incorreto</span>
-    <span class="inc-badge" id="incBadge">0</span>
-    <span class="inc-sub">Clique para ver · Corrija no Jira</span>
-    <span id="incArr" style="color:var(--mut);font-size:11px;margin-left:4px;transition:transform .2s;">▼</span>
-  </div>
-  <div class="inc-body" id="incBody">
-    <table class="inc-table">
-      <thead><tr>
-        <th>Key</th><th>Tipo</th><th>Summary</th><th>Status</th><th>Responsável</th><th>Atualizado</th><th>Ação</th>
-      </tr></thead>
-      <tbody id="incRows"></tbody>
-    </table>
-  </div>
+<!-- INCORRETOS — agrupado por tipo, antes do conteúdo principal -->
+<div id="incSection" style="display:none;margin:0 20px 14px;">
+  <div id="incGrupos"></div>
 </div>
 
 <div class="main" id="mainContent">
@@ -810,42 +809,42 @@ function renderKPIs(rows) {
   var bus  = new Set(rows.map(function(r){ return norm(gS(r,'BU')); }).filter(Boolean)).size;
   var camp = new Set(rows.map(function(r){ return gS(r,'PAI_SUMMARY'); }).filter(Boolean)).size;
 
-  // Classificação por relação pai-filho — soma = tot
-  // Cada ticket único conta uma vez, classificado por tipo:
-  // Filho  = tem FILHO_KEY (subtarefa com pai)
-  // Pai    = não tem FILHO_KEY, mas outros tickets têm esse PAI_KEY como pai (agrupador)
-  // Órfão  = não tem FILHO_KEY, nenhum outro ticket o referencia (solo puro)
+  // Estrutura do PAINEL:
+  // Linha com FILHO_KEY preenchido = subtarefa (filho)
+  // Linha com FILHO_KEY vazio      = ticket solo (órfão — pai sem filhos)
+  // PAI_KEY nas linhas com FILHO_KEY = campanhas agrupadores (não são linhas separadas)
 
-  var paiKeysDosFilhos = new Set();
-  var nFilhos = 0;
+  var paiKeysUnicos = new Set(); // PAI_KEY únicos que têm filhos = campanhas agrupadores
+  var nFilhos  = 0; // subtarefas únicas (já deduplicadas por ticketsUnicos)
+  var nOrfaos  = 0; // solos (linhas sem FILHO_KEY)
+
   unicos.forEach(function(r) {
-    if (gS(r,'FILHO_KEY')) {
+    var fk = gS(r, 'FILHO_KEY');
+    if (fk) {
       nFilhos++;
-      var pk = gS(r,'PAI_KEY');
-      if (pk) paiKeysDosFilhos.add(pk);
+      var pk = gS(r, 'PAI_KEY');
+      if (pk) paiKeysUnicos.add(pk);
+    } else {
+      nOrfaos++;
     }
   });
-  // Agora classifica os não-filhos
-  var nPais = 0, nOrfaos = 0;
-  unicos.forEach(function(r) {
-    if (!gS(r,'FILHO_KEY')) {
-      var pk = gS(r,'PAI_KEY');
-      if (pk && paiKeysDosFilhos.has(pk)) {
-        nPais++; // esse ticket é pai de algum filho visível
-      } else {
-        nOrfaos++; // solo sem filhos nos dados filtrados
-      }
-    }
-  });
-  // Verificação: nFilhos + nPais + nOrfaos = tot
+
+  var nPais = paiKeysUnicos.size;
+  // nFilhos + nOrfaos = tot ✅
+  // nPais é informativo (campanhas agrupadores = não entram no total)
+
+  var nJira = (dados && dados.totalJira) ? dados.totalJira : null;
+  var nInc  = incorretos ? incorretos.length : 0;
 
   var sep = '<div style="display:flex;align-items:center;justify-content:center;"><div style="width:1px;height:20px;background:var(--brd);opacity:.4;"></div></div>';
 
   document.getElementById('kpiBar').innerHTML =
-    kpiInfo(nPais,   'Pais') +
-    kpiInfo(nFilhos, 'Filhos') +
-    (nOrfaos > 0 ? kpiInfo(nOrfaos, 'Órfãos') : '') +
-    kpiBtn('todos',    tot,       'Total', '') +
+    (nJira ? kpiInfo(nJira, 'Total Jira') : '') +
+    (nInc  ? '<div class="kpi no-action" style="border-color:#7c1d3a;background:#1e0f18;" title="'+nInc+' issues com tipo inválido — veja acima"><div class="kpi-value" style="color:#f9a8c0;">'+nInc+'</div><div class="kpi-label" style="color:#c08090;">⚠️ Incorretos</div></div>' : '') +
+    kpiInfo(nPais,   'Campanhas') +
+    kpiInfo(nFilhos, 'Subtarefas') +
+    (nOrfaos > 0 ? kpiInfo(nOrfaos, 'Solos') : '') +
+    kpiBtn('todos',    tot,       'Processados', '') +
     sep +
     kpiBtn('concluido', pct+'%', 'Concluídos', 'green') +
     kpiBtn('qa',       qa,        'Em QA',      'yellow') +
@@ -1041,30 +1040,87 @@ function toggleSec(bodyId,arrId){
 }
 
 // ── INCORRETOS ────────────────────────────────────────────────
+var _incAbertos = {}; // controla quais grupos estão abertos
+
+function instrucaoTipo(tipo, temPai) {
+  var t = String(tipo || '').toLowerCase();
+  if (t === 'epic' || t === 'épico') return 'Mudar tipo para Tarefa no Jira';
+  if (t === 'história' || t === 'historia' || t === 'story') return temPai ? 'Mudar tipo para Subtarefa no Jira' : 'Mudar tipo para Tarefa no Jira';
+  if (t === 'bug') return temPai ? 'Mudar tipo para Subtarefa no Jira' : 'Mudar tipo para Tarefa no Jira';
+  return temPai ? 'Mudar tipo para Subtarefa no Jira' : 'Mudar tipo para Tarefa no Jira';
+}
+
+function toggleGrupoInc(tipo) {
+  _incAbertos[tipo] = !_incAbertos[tipo];
+  var body = document.getElementById('inc-body-' + _escId(tipo));
+  var arr  = document.getElementById('inc-arr-' + _escId(tipo));
+  if (body) body.classList.toggle('show', !!_incAbertos[tipo]);
+  if (arr)  arr.style.transform = _incAbertos[tipo] ? 'rotate(180deg)' : '';
+}
+
+function _escId(s) { return String(s).replace(/[^a-zA-Z0-9]/g, '_'); }
+
 function renderIncorretos() {
   if (!incorretos || !incorretos.length) return;
-  document.getElementById('incBadge').textContent = incorretos.length;
-  var jiraBase = 'https://storm-x.atlassian.net/browse/';
-  var html = '';
+
+  // Agrupar por tipo
+  var grupos = {};
   incorretos.forEach(function(r) {
-    html += '<tr>'
-      + '<td><a class="inc-jira-link" href="'+jiraBase+r['KEY']+'" target="_blank">'+r['KEY']+'</a></td>'
-      + '<td><span class="tag-tipo">'+r['TIPO']+'</span></td>'
-      + '<td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+r['SUMMARY']+'">'+r['SUMMARY']+'</td>'
-      + '<td>'+r['STATUS']+'</td>'
-      + '<td style="font-size:10px;">'+r['RESPONSÁVEL']+'</td>'
-      + '<td style="font-size:10px;white-space:nowrap;">'+fmtData(r['ATUALIZADO'])+'</td>'
-      + '<td><a class="inc-jira-link" href="'+r['LINK JIRA']+'" target="_blank">Corrigir ↗</a></td>'
-      + '</tr>';
+    var tipo = r['TIPO'] || 'Desconhecido';
+    if (!grupos[tipo]) grupos[tipo] = [];
+    grupos[tipo].push(r);
   });
-  document.getElementById('incRows').innerHTML = html;
+
+  var jiraBase = 'https://storm-x.atlassian.net/browse/';
+  var total = incorretos.length;
+
+  var html = '<div class="inc-banner">'
+    + '<div class="inc-banner-icon">⚠️</div>'
+    + '<div class="inc-banner-txt">'
+    + '<div class="inc-banner-title">' + total + ' issue' + (total===1?'':'s') + ' com tipo inválido — não aparecem no painel</div>'
+    + '<div class="inc-banner-sub">Corrija o tipo no Jira para incluí-las. No próximo sync elas somem daqui.</div>'
+    + '</div>'
+    + '</div>';
+
+  Object.keys(grupos).sort().forEach(function(tipo) {
+    var rows = grupos[tipo];
+    var eid  = _escId(tipo);
+    var instrucao = instrucaoTipo(tipo, rows.some(function(r){ return r['LINK JIRA'] && r['LINK JIRA'].includes('UL-'); }));
+
+    html += '<div class="inc-bloco">'
+      + '<div class="inc-bloco-header" onclick="toggleGrupoInc(\'' + tipo.replace(/'/g,"\\'") + '\')">'
+      + '<span class="inc-tipo-badge">' + tipo + '</span>'
+      + '<span class="inc-bloco-instrucao">→ ' + instrucao + '</span>'
+      + '<span class="inc-bloco-count">' + rows.length + ' issue' + (rows.length===1?'':'s') + '</span>'
+      + '<span class="inc-bloco-arr" id="inc-arr-' + eid + '">▼</span>'
+      + '</div>'
+      + '<div class="inc-bloco-body" id="inc-body-' + eid + '">';
+
+    rows.forEach(function(r) {
+      var key  = r['KEY']  || '';
+      var sum  = r['SUMMARY'] || '';
+      var sts  = r['STATUS']  || '';
+      var resp = r['RESPONSÁVEL'] || '';
+      var atu  = fmtData(r['ATUALIZADO']);
+      html += '<div class="inc-row">'
+        + '<a class="inc-key" href="' + jiraBase + key + '" target="_blank">' + key + '</a>'
+        + '<span class="inc-summary" title="' + sum + '">' + sum + '</span>'
+        + '<span class="inc-status">' + sts + '</span>'
+        + '<span class="inc-resp">' + resp + '</span>'
+        + '<span class="inc-atu">' + atu + '</span>'
+        + '<a class="inc-corrigir" href="' + jiraBase + key + '" target="_blank">Corrigir ↗</a>'
+        + '</div>';
+    });
+
+    html += '</div></div>';
+  });
+
+  var sec = document.getElementById('incSection');
+  document.getElementById('incGrupos').innerHTML = html;
+  sec.style.display = 'block';
 }
-function toggleIncorretos() {
-  var body = document.getElementById('incBody');
-  var arr  = document.getElementById('incArr');
-  var show = body.classList.toggle('show');
-  arr.style.transform = show ? 'rotate(180deg)' : '';
-}
+
+function toggleIncorretos() {} // mantida por compatibilidade
 
 // ── EXPORTADOR ────────────────────────────────────────────────
 var TODAS_COLUNAS = ['PAI_KEY','PAI_SUMMARY','BU','AGÊNCIA','MARCA (JIRA)','CAMP. MÍDIA',
