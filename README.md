@@ -30,7 +30,7 @@ O sync é encadeado em triggers de 4.5 min cada — escala para qualquer volume 
 | Arquivo | Onde vai | Descrição |
 |---|---|---|
 | `01_Config.gs` | Apps Script | Menu, credenciais, acionadores, popups de progresso |
-| `02_Sync.gs` | Apps Script | Busca paginada no Jira, buffer, gravação RAW, etapa 2 |
+| `02_Sync.gs` | Apps Script | Busca paginada no Jira, buffer, gravação RAW, etapas encadeadas |
 | `03_Abas.gs` | Apps Script | Gravação e formatação de todas as abas da planilha |
 | `04_WebApp.gs` | Apps Script | doGet (JSONP/JSON), doPost (exportar), getDados |
 | `Painel.html` | Apps Script | Redirect para o GitHub Pages |
@@ -48,7 +48,27 @@ O sync é encadeado em triggers de 4.5 min cada — escala para qualquer volume 
 | RAW_PAI | Todas as Tarefas do Jira (campanhas) |
 | RAW_FILHO | Todas as Subtarefas do Jira (tickets de trabalho) |
 | DE_PARA | Dicionário de normalização — edite para mapear veículos e marcas |
-| ⚠️ INCORRETOS | Issues com tipo inválido — corrija no Jira |
+| ⚠️ INCORRETOS | Issues com tipo inválido — corrija no Jira (aparece só quando há erros) |
+
+---
+
+## Contagem de tickets
+
+O Jira conta todas as issues. O dashboard conta só o **trabalho executável**:
+
+| Tipo | Jira | Dashboard |
+|---|---|---|
+| Subtarefas (com pai) | ✅ | ✅ conta |
+| Solos (tarefa sem subtarefas) | ✅ | ✅ conta |
+| Pais (tarefa com subtarefas) | ✅ | ❌ não conta — são agrupadores |
+| Incorretos (Epic, Bug etc) | ✅ | ❌ não conta — aparecem em banner vermelho |
+
+```
+Jira total     = Pais + Subtarefas + Solos + Incorretos
+Dashboard total = Subtarefas + Solos
+```
+
+A diferença entre os dois números é sempre `Pais + Incorretos` — e muda conforme novos tickets entram no Jira.
 
 ---
 
@@ -60,7 +80,7 @@ O sync é encadeado em triggers de 4.5 min cada — escala para qualquer volume 
 4. Deploy → Nova implantação → Web App → Executar como: Eu → Qualquer pessoa
 5. Menu 📋 Dashboard UL → 1. Configurar credenciais
 6. Informe e-mail Atlassian + API Token do Jira + data de validade
-7. O sync completo inicia automaticamente (~10 min para concluir)
+7. O sync completo inicia automaticamente (~10–15 min para concluir)
 
 ### GitHub Pages
 
@@ -72,13 +92,12 @@ O sync é encadeado em triggers de 4.5 min cada — escala para qualquer volume 
 
 ## Sync
 
-- **Completo:** roda na primeira configuração ou quando forçado pelo menu. Busca todas as issues do projeto UL.
-- **Incremental:** roda automaticamente a cada 1h via trigger. Busca só issues atualizadas na última hora e faz merge com os dados existentes.
-- **Manual:** Menu → 3. Sincronizar (força sync completo imediato)
+- **Completo:** roda na primeira configuração ou quando forçado pelo menu (Menu → 3. Sincronizar). Busca todas as issues do projeto UL. Encadeado em 4 triggers independentes para evitar timeout.
+- **Incremental:** roda automaticamente a cada 1h. Busca só issues atualizadas na última hora e faz merge com os dados existentes.
 
 ---
 
-## DE_PARA — como adicionar mapeamentos
+## DE_PARA — como mapear
 
 Abra a aba `DE_PARA` na planilha e adicione uma linha:
 

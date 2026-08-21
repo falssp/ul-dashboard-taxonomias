@@ -841,7 +841,7 @@ function renderKPIs(rows) {
   document.getElementById('kpiBar').innerHTML =
     (nJira ? kpiInfo(nJira, 'Total Jira') : '') +
     (nInc  ? '<div class="kpi no-action" style="border-color:#7c1d3a;background:#1e0f18;" title="'+nInc+' issues com tipo inválido — veja acima"><div class="kpi-value" style="color:#f9a8c0;">'+nInc+'</div><div class="kpi-label" style="color:#c08090;">⚠️ Incorretos</div></div>' : '') +
-    kpiInfo(nPais,   'Campanhas') +
+    kpiInfo(nPais,   'Pais') +
     kpiInfo(nFilhos, 'Subtarefas') +
     (nOrfaos > 0 ? kpiInfo(nOrfaos, 'Solos') : '') +
     kpiBtn('todos',    tot,       'Processados', '') +
@@ -1330,8 +1330,16 @@ function _init(){
           <span style="color:#4f7ef8;">■</span> <strong style="color:#e8ecf4;">Tickets de trabalho</strong> — subtarefas + tickets solo (sem filhos).<br>
           <span style="color:#e67e22;">■</span> <strong style="color:#e8ecf4;">Campanhas</strong> — tarefas pai que têm subtarefas. São agrupadores.<br>
           <span style="color:#e74c3c;">■</span> <strong style="color:#e8ecf4;">Incorretos</strong> — issues com tipo inválido. Visíveis no banner ⚠️.<br><br>
-          <code style="background:#141828;padding:2px 7px;border-radius:3px;color:#4f7ef8;font-size:11px;">Jira total = filhos + pais agrupadores + solos + incorretos</code><br>
-          <span style="font-size:11px;color:#6b7a9e;margin-top:6px;display:block;">Pais agrupadores (campanhas com subtarefas) não são trabalho executável — não entram no total do painel. Tickets com múltiplos veículos aparecem em mais de uma linha mas são contados uma vez só nos KPIs.</span>
+          <div style="font-size:13px;color:#a0aabf;line-height:1.6;">
+          O Jira conta <strong style="color:#e8ecf4;">todas as issues</strong> independente de tipo ou relação. O dashboard conta só o <strong style="color:#e8ecf4;">trabalho executável</strong>:<br><br>
+          <span style="color:#4f7ef8;">■</span> <strong style="color:#e8ecf4;">Subtarefas</strong> — tickets com pai (trabalho real).<br>
+          <span style="color:#2ecc71;">■</span> <strong style="color:#e8ecf4;">Solos</strong> — tarefas sem subtarefas (também são trabalho).<br>
+          <span style="color:#e67e22;">■</span> <strong style="color:#e8ecf4;">Pais</strong> — tarefas com subtarefas. São agrupadores, não entram no total.<br>
+          <span style="color:#e74c3c;">■</span> <strong style="color:#e8ecf4;">Incorretos</strong> — tipos inválidos (Epic, Bug etc). Aparecem em banner vermelho.<br><br>
+          <code style="background:#141828;padding:2px 7px;border-radius:3px;color:#4f7ef8;font-size:11px;">Jira = Pais + Subtarefas + Solos + Incorretos</code><br>
+          <code style="background:#141828;padding:2px 7px;border-radius:3px;color:#2ecc71;font-size:11px;margin-top:4px;display:inline-block;">Dashboard = Subtarefas + Solos</code><br>
+          <span style="font-size:11px;color:#6b7a9e;margin-top:6px;display:block;">Tickets com múltiplos veículos aparecem em mais de uma linha mas são contados uma vez só nos KPIs.</span>
+          </div>
         </div>
       </div>
       <div style="background:#1e2333;border-radius:8px;padding:18px 20px;border-left:3px solid #a0aabf;">
