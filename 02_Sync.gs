@@ -1,5 +1,6 @@
 // ============================================================
 // [UL] Dashboard_Taxonomias — 02_Sync.gs
+// Deploy automático via clasp
 // Busca Jira paginada em execuções encadeadas (escala ilimitada)
 // ============================================================
 
