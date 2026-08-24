@@ -119,23 +119,17 @@ const ABAS_PERMITIDAS_SET = new Set([
 function formatarPlanilha() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // Remove abas não permitidas automaticamente
+  // Remove abas não permitidas
   ss.getSheets().forEach(function(sh) {
     const nome = sh.getName();
     if (!ABAS_PERMITIDAS_SET.has(nome) && ss.getSheets().length > 1) {
       try { ss.deleteSheet(sh); Logger.log('Aba extra removida: ' + nome); }
-      catch(e) { Logger.log('Não foi possível remover: ' + nome); }
+      catch(e) {}
     }
   });
 
-  // Remove aba RAW legada (versão antiga)
-  try {
-    const rawLegada = ss.getSheetByName('RAW');
-    if (rawLegada) { ss.deleteSheet(rawLegada); Logger.log('Aba RAW legada removida.'); }
-  } catch(e) { Logger.log('Erro ao remover aba RAW legada: ' + e); }
-
-  const shInicio = ss.getSheetByName('🏠 INICIO');
-  if (shInicio) try { shInicio.setColumnWidth(1, 680); } catch(e) {}
+  // Remove aba RAW legada
+  try { const r = ss.getSheetByName('RAW'); if (r) ss.deleteSheet(r); } catch(e) {}
 
   ss.getSheets().forEach(function(sh) {
     const nome = sh.getName();
@@ -146,17 +140,23 @@ function formatarPlanilha() {
     try {
       const maxR = sh.getMaxRows(), maxC = sh.getMaxColumns();
       if (maxR > lastRow + 1) sh.deleteRows(lastRow + 2, maxR - lastRow - 1);
-      if (maxC > lastCol) sh.deleteColumns(lastCol + 1, maxC - lastCol);
+      if (maxC > lastCol)     sh.deleteColumns(lastCol + 1, maxC - lastCol);
     } catch(e) {}
-    sh.getRange(1, 1, lastRow, lastCol).setVerticalAlignment('middle');
+    // Formatação em batch — sem loop linha a linha
+    const range = sh.getRange(1, 1, lastRow, lastCol);
+    range.setVerticalAlignment('middle');
     if (lastRow >= 1) {
       sh.getRange(1, 1, 1, lastCol).setHorizontalAlignment('center').setFontWeight('bold');
       sh.setRowHeight(1, 28);
     }
+    // Altura das linhas de dados em uma única chamada batch
     if (lastRow > 1) {
-      for (var r = 2; r <= lastRow; r++) sh.setRowHeight(r, 22);
+      try { sh.setRowHeightsForced(2, lastRow - 1, 22); } catch(e) {
+        // fallback se setRowHeightsForced não disponível
+        sh.setRowHeight(2, 22);
+      }
     }
-    Logger.log('Formatando: ' + nome + ' (' + lastRow + ' linhas, ' + lastCol + ' cols)');
+    Logger.log('Formatando: ' + nome + ' (' + lastRow + ' linhas)');
   });
 }
 

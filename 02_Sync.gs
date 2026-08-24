@@ -368,24 +368,23 @@ function _etapa2Finalizar() {
   ScriptApp.getProjectTriggers().forEach(t => {
     if (t.getHandlerFunction() === '_etapa2Finalizar') ScriptApp.deleteTrigger(t);
   });
-  Logger.log('Etapa 2c: INICIO + formatação...');
-  _setProgresso('formatando', 'Atualizando manual (INICIO)...');
+  Logger.log('Etapa 2c: INICIO + reordenação...');
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  try { _criarAbaInicio(ss); } catch(e) { Logger.log('INICIO: ' + e); }
+  const props = PropertiesService.getScriptProperties();
 
-  _setProgresso('formatando', 'Formatando planilha...');
-  try { formatarPlanilha(); } catch(e) { Logger.log('Formatação: ' + e); }
+  // INICIO — só no sync completo (JQL_EXTRA vazio = completo)
+  const jqlExtra = props.getProperty(PROP_JQL_EXTRA) || '';
+  const isCompleto = jqlExtra === '';
 
-  // Reordena abas na ordem correta
+  if (isCompleto) {
+    _setProgresso('formatando', 'Atualizando manual (INICIO)...');
+    try { _criarAbaInicio(ss); } catch(e) { Logger.log('INICIO: ' + e); }
+  }
+
+  // Reordena abas
   try {
     const ORDEM = ['🏠 INICIO', 'PAINEL', '📋 TABELA', 'RAW_PAI', 'RAW_FILHO', 'DE_PARA', '⚠️ INCORRETOS'];
-    // moveActiveSheet não existe — usar moveTo com índice
-    ORDEM.slice().reverse().forEach(function(nome) {
-      const sh = ss.getSheetByName(nome);
-      if (sh) ss.moveActiveSheet && ss.setActiveSheet(sh) && ss.moveActiveSheet(1);
-    });
-    // API correta: sh.activate() + ss.moveActiveSheet
     ORDEM.slice().reverse().forEach(nome => {
       const sh = ss.getSheetByName(nome);
       if (!sh) return;
@@ -394,7 +393,33 @@ function _etapa2Finalizar() {
     });
   } catch(e) { Logger.log('Reordenação abas: ' + e); }
 
-  const total = PropertiesService.getScriptProperties().getProperty(PROP_SYNC_TOTAL) || '?';
+  // SYNC_TOTAL = RAW_PAI + RAW_FILHO + INCORRETOS (número real gravado)
+  try {
+    const rawP = ss.getSheetByName('RAW_PAI');
+    const rawF = ss.getSheetByName('RAW_FILHO');
+    const rawI = ss.getSheetByName('⚠️ INCORRETOS');
+    const nP = rawP && rawP.getLastRow() > 1 ? rawP.getLastRow() - 1 : 0;
+    const nF = rawF && rawF.getLastRow() > 1 ? rawF.getLastRow() - 1 : 0;
+    const nI = rawI && rawI.getLastRow() > 1 ? rawI.getLastRow() - 1 : 0;
+    const totalReal = nP + nF + nI;
+    if (totalReal > 0) {
+      props.setProperty(PROP_SYNC_TOTAL, String(totalReal));
+      Logger.log('SYNC_TOTAL recalculado: ' + nP + ' pais + ' + nF + ' filhos + ' + nI + ' incorretos = ' + totalReal);
+    }
+  } catch(e) { Logger.log('Erro ao recalcular SYNC_TOTAL: ' + e); }
+
+  // Formatação leve — só limpeza de abas extras (sem setRowHeight em massa)
+  _setProgresso('formatando', 'Limpando abas extras...');
+  try {
+    const PERMITIDAS = new Set(['🏠 INICIO','PAINEL','📋 TABELA','RAW_PAI','RAW_FILHO','DE_PARA','⚠️ INCORRETOS','_SYNC_BUFFER']);
+    ss.getSheets().forEach(sh => {
+      if (!PERMITIDAS.has(sh.getName()) && ss.getSheets().length > 1) {
+        try { ss.deleteSheet(sh); } catch(e) {}
+      }
+    });
+  } catch(e) { Logger.log('Limpeza: ' + e); }
+
+  const total = props.getProperty(PROP_SYNC_TOTAL) || '?';
   Logger.log('Sync concluído: ' + total + ' issues.');
   _setProgresso('concluido', total + ' issues sincronizadas · PAINEL e TABELA atualizados.');
 }
