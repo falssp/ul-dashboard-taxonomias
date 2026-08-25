@@ -25,8 +25,15 @@ function getDados() {
   }
   const shInc = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('⚠️ INCORRETOS');
   const nIncorretos = shInc && shInc.getLastRow() > 1 ? shInc.getLastRow() - 1 : 0;
-  const totalJiraStr = PropertiesService.getScriptProperties().getProperty('SYNC_TOTAL') || '';
-  const totalJira = totalJiraStr ? parseInt(totalJiraStr, 10) : null;
+  // Calcula total Jira direto das abas RAW (mais confiável que SYNC_TOTAL)
+  const ss2 = SpreadsheetApp.getActiveSpreadsheet();
+  const rawP2 = ss2.getSheetByName('RAW_PAI');
+  const rawF2 = ss2.getSheetByName('RAW_FILHO');
+  const rawI2 = ss2.getSheetByName('⚠️ INCORRETOS');
+  const nP2 = rawP2 && rawP2.getLastRow() > 1 ? rawP2.getLastRow() - 1 : 0;
+  const nF2 = rawF2 && rawF2.getLastRow() > 1 ? rawF2.getLastRow() - 1 : 0;
+  const nI2 = rawI2 && rawI2.getLastRow() > 1 ? rawI2.getLastRow() - 1 : 0;
+  const totalJira = nP2 + nF2 + nI2 || null;
 
   return {
     sync: new Date().toISOString(),
