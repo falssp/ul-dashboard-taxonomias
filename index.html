@@ -833,7 +833,22 @@ function renderKPIs(rows) {
   // nFilhos + nOrfaos = tot ✅
   // nPais é informativo (campanhas agrupadores = não entram no total)
 
-  var nJira = (dados && dados.totalJira) ? dados.totalJira : null;
+  // Total Jira = Pais únicos (com filhos) + Filhos únicos + Solos
+  // Calculado localmente a partir dos dados — não depende do servidor
+  var todosFilhos = new Set();
+  var todosPais   = new Set();
+  var todosSolos  = 0;
+  (dados.rows || []).forEach(function(r) {
+    var fk = gS(r,'FILHO_KEY');
+    var pk = gS(r,'PAI_KEY');
+    if (fk) {
+      todosFilhos.add(fk);
+      if (pk) todosPais.add(pk);
+    } else {
+      todosSolos++;
+    }
+  });
+  var nJira = todosPais.size + todosFilhos.size + todosSolos || null;
   var nInc  = incorretos ? incorretos.length : 0;
 
   var sep = '<div style="display:flex;align-items:center;justify-content:center;"><div style="width:1px;height:20px;background:var(--brd);opacity:.4;"></div></div>';
